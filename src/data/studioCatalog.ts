@@ -135,6 +135,19 @@ export function useActivePackages(functionId: string | null) {
   });
 }
 
+/**
+ * Loads the chosen packages' lines (same cache the Customise step reads) and signs + preloads
+ * their element images, so Customise opens with everything ready — no loading swap mid-animation.
+ */
+export function prefetchPackageLines(qc: ReturnType<typeof useQueryClient>, packageIds: readonly string[]): void {
+  for (const id of packageIds) {
+    void qc
+      .fetchQuery({ queryKey: ['studio', 'package-lines', id], queryFn: () => studioCatalogApi.packageLines(id), staleTime: 60_000 })
+      .then((lines) => prefetchSignedUrls(qc, 'element-images', lines.map((l) => l.image_path), { preload: true }))
+      .catch(() => undefined); // Customise loads (and reports) it again if this failed
+  }
+}
+
 export function usePackageLines(packageId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ['studio', 'package-lines', packageId],

@@ -6,8 +6,12 @@
  * Layout matches the Guest step: cards on a dark panel on the left, "Your selection" (chosen
  * packages + Back / Continue) on the right at the same height.
  */
+import { useEffect } from 'react';
 import { useAuth } from '@/auth/AuthContext';
-import { useActivePackages, type StudioPackage } from '@/data/studioCatalog';
+import { useQueryClient } from '@tanstack/react-query';
+import { prefetchPackageLines, useActivePackages, type StudioPackage, type StudioPackageLine } from '@/data/studioCatalog';
+import { chargeRatesApi } from '@/data/chargeRates';
+import { linesFromPackage } from '../lines';
 import { useEventOptions } from '@/data/eventOptions';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -32,6 +36,29 @@ const GRID = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
 export function PackageStep({ onBack, onDone }: Props) {
   const { session } = useAuth();
   const [draft, updateDraft] = useQuoteDraft(session?.user.id ?? 'anon');
+  const qc = useQueryClient();
+
+  // Warm up Customise while packages are being picked: lines, element images and charge rates.
+  const pickedIds = draft.packages.map((b) => b.id).join(',');
+  useEffect(() => {
+    if (pickedIds) prefetchPackageLines(qc, pickedIds.split(','));
+  }, [pickedIds, qc]);
+  useEffect(() => {
+    void qc.prefetchQuery({ queryKey: ['charge-rates'], queryFn: () => chargeRatesApi.list(), staleTime: 5 * 60_000 }).catch(() => undefined);
+  }, [qc]);
+
+  // Seed lines that are already loaded before leaving, so Customise shows them on its first frame.
+  function goNext() {
+    updateDraft((d) => ({
+      ...d,
+      packages: d.packages.map((b) => {
+        if (b.lines !== null) return b;
+        const cached = qc.getQueryData<StudioPackageLine[]>(['studio', 'package-lines', b.id]);
+        return cached ? { ...b, lines: linesFromPackage(cached) } : b;
+      }),
+    }));
+    onDone();
+  }
   const options = useEventOptions();
   const functionId = draft.guest?.functionId || null;
   const fnName = options.data?.functions.find((f) => f.id === functionId)?.name ?? 'this function';
@@ -231,7 +258,7 @@ export function PackageStep({ onBack, onDone }: Props) {
           <Button variant="outline-light" onClick={onBack}>
             <Icon name="arrowLeft" size={18} /> Back
           </Button>
-          <Button variant="gold" full onClick={onDone} disabled={selected.size === 0}>
+          <Button variant="gold" full onClick={goNext} disabled={selected.size === 0}>
             Continue <Icon name="arrowRight" size={18} />
           </Button>
         </div>
