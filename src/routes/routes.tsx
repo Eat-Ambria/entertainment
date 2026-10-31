@@ -6,42 +6,46 @@
  *   /         workspace chooser
  *   /studio   Guest Studio — client-facing, no internal data
  *   /admin    My Workspace — internal management, rates, P&L
- * Every page is lazy-loaded so each screen ships only its own code.
+ * Every page is lazy-loaded so each screen ships only its own code; a chunk missing after a new
+ * deploy reloads the page once (lib/lazyPage), other errors show RouteError.
  */
-import { lazy } from 'react';
+import { lazyPage } from '@/lib/lazyPage';
 import { Navigate, type RouteObject } from 'react-router-dom';
 import { AdminLayout } from '@/admin/AdminLayout';
 import { StudioLayout } from '@/studio/StudioLayout';
 import { ProtectedRoute, RequireSession } from './ProtectedRoute';
+import { RouteError } from './RouteError';
 
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const ChangePasswordPage = lazy(() => import('@/pages/ChangePasswordPage'));
-const WorkspaceChooserPage = lazy(() => import('@/pages/WorkspaceChooserPage'));
-const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const LoginPage = lazyPage(() => import('@/pages/LoginPage'));
+const ChangePasswordPage = lazyPage(() => import('@/pages/ChangePasswordPage'));
+const WorkspaceChooserPage = lazyPage(() => import('@/pages/WorkspaceChooserPage'));
+const NotFoundPage = lazyPage(() => import('@/pages/NotFoundPage'));
 
-const StudioHomePage = lazy(() => import('@/studio/pages/StudioHomePage'));
-const StudioNewQuotePage = lazy(() => import('@/studio/pages/StudioNewQuotePage'));
-const SavedQuotePage = lazy(() => import('@/studio/pages/SavedQuotePage'));
+const StudioHomePage = lazyPage(() => import('@/studio/pages/StudioHomePage'));
+const StudioNewQuotePage = lazyPage(() => import('@/studio/pages/StudioNewQuotePage'));
+const SavedQuotePage = lazyPage(() => import('@/studio/pages/SavedQuotePage'));
 
-const DashboardPage = lazy(() => import('@/admin/pages/DashboardPage'));
-const ElementsPage = lazy(() => import('@/admin/pages/ElementsPage'));
-const PackagesPage = lazy(() => import('@/admin/pages/PackagesPage'));
-const PackageEditorPage = lazy(() => import('@/admin/pages/PackageEditorPage'));
-const ChargesPage = lazy(() => import('@/admin/pages/ChargesPage'));
-const QuoteLedgerPage = lazy(() => import('@/admin/pages/QuoteLedgerPage'));
-const QuoteDetailPage = lazy(() => import('@/admin/pages/QuoteDetailPage'));
-const RateHistoryPage = lazy(() => import('@/admin/pages/RateHistoryPage'));
-const PnlReportsPage = lazy(() => import('@/admin/pages/PnlReportsPage'));
-const SettingsPage = lazy(() => import('@/admin/pages/SettingsPage'));
+const DashboardPage = lazyPage(() => import('@/admin/pages/DashboardPage'));
+const ElementsPage = lazyPage(() => import('@/admin/pages/ElementsPage'));
+const PackagesPage = lazyPage(() => import('@/admin/pages/PackagesPage'));
+const PackageEditorPage = lazyPage(() => import('@/admin/pages/PackageEditorPage'));
+const ChargesPage = lazyPage(() => import('@/admin/pages/ChargesPage'));
+const QuoteLedgerPage = lazyPage(() => import('@/admin/pages/QuoteLedgerPage'));
+const QuoteDetailPage = lazyPage(() => import('@/admin/pages/QuoteDetailPage'));
+const RateHistoryPage = lazyPage(() => import('@/admin/pages/RateHistoryPage'));
+const PnlReportsPage = lazyPage(() => import('@/admin/pages/PnlReportsPage'));
+const SettingsPage = lazyPage(() => import('@/admin/pages/SettingsPage'));
 
 export const routes: RouteObject[] = [
-  { path: 'login', element: <LoginPage /> },
+  { path: 'login', element: <LoginPage />, errorElement: <RouteError /> },
   {
     element: <RequireSession />,
+    errorElement: <RouteError />,
     children: [{ path: 'change-password', element: <ChangePasswordPage /> }],
   },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <WorkspaceChooserPage /> },
       {

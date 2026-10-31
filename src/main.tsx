@@ -8,10 +8,17 @@ import App from './App';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { initInstallPrompt } from '@/pwa/installPrompt';
+import { reloadForNewVersion } from '@/lib/lazyPage';
 import './index.css';
 
 // Before React mounts — the browser may fire the install prompt very early.
 initInstallPrompt();
+
+// A file from the previous build failed to preload (a new version was deployed): reload once.
+window.addEventListener('vite:preloadError', (e) => {
+  e.preventDefault();
+  reloadForNewVersion();
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
