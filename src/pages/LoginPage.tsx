@@ -95,7 +95,6 @@ export default function LoginPage() {
 
       {/* Right: a quiet, dark sign-in column (no white card). */}
       <main className="relative flex items-center justify-center overflow-hidden px-6 py-12 sm:px-12">
-        <span className="pointer-events-none absolute -top-40 -right-40 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgb(226_183_102/0.14),transparent_65%)]" />
 
         <div className="relative w-full max-w-sm animate-rise">
           <div className="mb-10 lg:hidden">
