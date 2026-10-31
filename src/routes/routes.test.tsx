@@ -73,7 +73,8 @@ describe('workspace chooser', () => {
     expect(await screen.findByRole('heading', { name: 'Guest Studio' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'My Workspace' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: /My Workspace/ }));
-    expect(router.state.location.pathname).toBe('/admin');
+    // The page opens a moment after the press so the ripple is seen.
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
   });
 });
 
@@ -103,7 +104,7 @@ describe('Guest Studio', () => {
 
   it('shows the business name from the profile', async () => {
     renderApp('/studio', fakeAuth({ profile: { ...testProfile, business_name: 'Uday Events' } }));
-    expect(await screen.findAllByText('Uday Events')).toHaveLength(2); // header + footer
+    expect(await screen.findAllByText('Uday Events')).toHaveLength(1); // header (the Studio has no footer)
   });
 
   it('redirects unknown studio paths to the studio home', async () => {

@@ -59,10 +59,10 @@ describe('Guest & Event step', () => {
     expect(within(list).getAllByText('Mehta Family')).toHaveLength(2);
     expect(within(list).queryByText(/9876543210/)).not.toBeInTheDocument();
     expect(within(list).getAllByText(/98765 •••10/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Demo data/)).toBeInTheDocument();
 
     await userEvent.click(within(list).getByRole('button', { name: 'Use Mehta Family C-1042' }));
-    expect(screen.getByText(/Details filled from contract C-1042/)).toBeInTheDocument();
+    // Filling is async (a venue written only in LMS may be added first); the side box confirms it.
+    expect(await screen.findByText(/Details filled from LMS/)).toBeInTheDocument();
     expect(screen.getByLabelText('Guest name')).toHaveValue('Mehta Family');
     expect(screen.getByLabelText('Function')).toHaveValue('f-sangeet');
     expect(screen.getByLabelText('Venue')).toHaveValue('v-exotica');
@@ -94,7 +94,8 @@ describe('Guest & Event step', () => {
       expect.stringMatching(/Sharma Family.*Lead/),
     ]);
     await userEvent.click(within(list).getByRole('button', { name: 'Use Sharma Family L-5531' }));
-    expect(screen.getByText(/Details filled from lead L-5531/)).toBeInTheDocument();
+    expect(await screen.findByText(/Details filled from LMS/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Guest name')).toHaveValue('Sharma Family');
   });
 
   it('clears the results when the search box is emptied (✕)', async () => {

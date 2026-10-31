@@ -414,7 +414,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
               <Icon name={editRates ? 'edit' : 'check'} size={15} />
             </span>
             <span>
-              {editRates ? 'Adjusting rates for this quote only — the master rates stay unchanged.' : 'Tick the elements the guest wants and set quantities.'}
+              {editRates ? 'Adjusting rates for this quote only.' : 'Tick the elements the guest wants and set quantities.'}
               <span className="block text-xs text-ivory/45">
                 {draft.packages.length} {draft.packages.length === 1 ? 'package' : 'packages'} · {summary.includedCount} elements included · additional charges below
               </span>

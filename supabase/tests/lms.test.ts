@@ -48,9 +48,11 @@ const row = (o: Record<string, unknown>) => ({
 });
 
 describe('mapping', () => {
-  it('real mapping is not guessed — lookups stay off until filled in', () => {
-    expect(isMappingReady(FIELD_MAP.lead)).toBe(false);
-    expect(isMappingReady(FIELD_MAP.contract)).toBe(false);
+  it('real mapping is filled from the captured LMS responses, so lookups are on', () => {
+    expect(isMappingReady(FIELD_MAP.lead)).toBe(true);
+    expect(isMappingReady(FIELD_MAP.contract)).toBe(true);
+    expect(FIELD_MAP.lead).toMatchObject({ listPath: 'leadinfo', ref: 'eh_entry_no', guestName: 'eh_guest_name' });
+    expect(FIELD_MAP.contract).toMatchObject({ listPath: 'Contractinfo', ref: 'ehc_entry_no', cancelRemarks: 'ehc_cancel_remarks' });
     expect(isMappingReady(TEST_MAP)).toBe(true);
   });
 });

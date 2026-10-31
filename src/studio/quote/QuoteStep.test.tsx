@@ -182,11 +182,9 @@ describe('Quotation step', () => {
     expect(payload.packages[0]!.lines).toHaveLength(3);
     expect(payload).not.toHaveProperty('final_total');
 
-    expect(await screen.findByText('Quote ENT-2026-00007 saved.')).toBeInTheDocument();
-    // the confirmation is brought into view and focused (Save is at the bottom of the page)
-    await waitFor(() => expect(screen.getByRole('link', { name: 'Open saved quote' }).closest('[role=status]')).toHaveFocus());
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: 'Open saved quote' })).toHaveAttribute('href', '/studio/quotes/q1');
+    expect(await screen.findByText('Quote ENT-2026-00007 saved.')).toBeInTheDocument(); // toast
+    // the side panel now shows the quote number (no "saved" banner any more)
+    expect(within(screen.getByRole('complementary', { name: 'Quotation actions' })).getByText('ENT-2026-00007')).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: 'Quotation' })).getByText('ENT-2026-00007')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -262,14 +260,11 @@ describe('Quotation step', () => {
     expect(await screen.findByText(/Too many changes in a short time/)).toBeInTheDocument();
   });
 
-  it('opens a clean full-screen Guest View', async () => {
+  it('has no Guest view button (removed on request)', async () => {
     renderApp('/studio/new?step=quote');
-    await userEvent.click(await screen.findByRole('button', { name: /Guest view/ }));
-    expect(screen.getByRole('article', { name: 'Quotation' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save quote' })).not.toBeInTheDocument();
+    await screen.findByRole('article', { name: 'Quotation' });
+    expect(screen.queryByRole('button', { name: /Guest view/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Additional charges —|Optional — transport/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Exit guest view/ }));
-    expect(screen.getByRole('button', { name: 'Save quote' })).toBeInTheDocument();
   });
 
   it('has an obvious way back to edit elements, rates and charges', async () => {
@@ -292,19 +287,23 @@ describe('Quotation step', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('goes to Studio home after saving, with a fresh draft', async () => {
+  it('goes to Studio home (header) after saving, with a fresh draft', async () => {
     const { router } = renderApp('/studio/new?step=quote');
     await userEvent.click(await screen.findByRole('button', { name: 'Save quote' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Go to home' }));
+    await screen.findByText('Quote ENT-2026-00007 saved.');
+    await userEvent.click(screen.getByRole('link', { name: /^Home$/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/studio'));
     await waitFor(() => expect(getQuoteDraft(testProfile.id)).toEqual(EMPTY_DRAFT)); // cleared as the step unmounts
   });
 
-  it('starts a fresh quote after saving', async () => {
+  it('starts a fresh quote after saving (Home, then Start a quotation)', async () => {
     const { router } = renderApp('/studio/new?step=quote');
     await userEvent.click(await screen.findByRole('button', { name: 'Save quote' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Start a new quote' }));
-    await waitFor(() => expect(router.state.location.search).toBe('?step=guest'));
+    await screen.findByText('Quote ENT-2026-00007 saved.');
+    await userEvent.click(screen.getByRole('link', { name: /^Home$/ }));
+    await userEvent.click(await screen.findByRole('link', { name: /Start a quotation/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/studio/new'));
+    expect(await screen.findByRole('heading', { name: 'Guest & Event' })).toBeInTheDocument();
     expect(getQuoteDraft(testProfile.id)).toEqual(EMPTY_DRAFT);
   });
 });
