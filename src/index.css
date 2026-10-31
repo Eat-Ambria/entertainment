@@ -1,0 +1,360 @@
+/* Global styles: Tailwind v4 + brand fonts + design tokens + the "stage" and motion system.
+ * Rules for using these live in .claude/skills/entertainment-presentation-ui/SKILL.md. */
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Display face for guest-facing headings and package names. */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  /* Small gold 'eyebrow' lines above headings (dates, venue, step numbers). */
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brand accent: champagne gold. 600+ are deep enough for text/buttons on white (AA);
+   * 300–400 are for text and highlights on the dark stage. */
+  --color-brand-50: #fdf8ec;
+  --color-brand-100: #f9edd0;
+  --color-brand-200: #f3dba6;
+  --color-brand-300: #ecc87f;
+  --color-brand-400: #e2b766;
+  --color-brand-500: #cf9f4c;
+  --color-brand-600: #946f30;
+  --color-brand-700: #7a5a25;
+  --color-brand-800: #5f461e;
+  --color-brand-900: #4a3718;
+  --color-brand-950: #2a1f0d;
+
+  /* Stage: warm near-black (candle-lit hall) — the guest-facing background. */
+  --color-stage-950: #0b0907;
+  --color-stage-900: #14110d;
+  --color-stage-800: #1e1a14;
+  --color-stage-700: #2b251c;
+  /* Warm ivory for text on the stage. */
+  --color-ivory: #f6f1e7;
+  /* Kept for highlights on the stage (alias of the light champagne). */
+  --color-spot-300: #ecc87f;
+  --color-spot-400: #e2b766;
+
+  /* Motion tokens (mirrored in src/lib/motion.ts). Fast 160 ms · standard 240 ms · modal 260 ms. */
+  --ease-premium: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-rise: rise 240ms var(--ease-premium) both;
+  --animate-fade: fade 180ms var(--ease-premium) both;
+  --animate-pop: pop 200ms var(--ease-premium) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 font-sans text-slate-900 antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* Use on any amount/qty column so digits line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible, on-brand keyboard focus everywhere. */
+:focus-visible {
+  outline-color: var(--color-brand-500);
+}
+
+/*
+ * The stage: charcoal with a soft champagne key light from the top and a cool midnight fill.
+ * Static gradients only — nothing animates, so it costs nothing while scrolling.
+ */
+.stage-bg {
+  background-color: var(--color-stage-950);
+  background-image:
+    radial-gradient(56rem 28rem at 60% -10%, rgb(226 183 102 / 0.16), transparent 70%),
+    radial-gradient(40rem 24rem at 100% 0%, rgb(150 96 40 / 0.18), transparent 70%),
+    radial-gradient(44rem 26rem at 0% 20%, rgb(120 80 35 / 0.14), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Concert lighting (components/ui/StageLights): four spotlight cones swaying slowly from the rig. */
+.stage-beam {
+  position: absolute;
+  top: -8%;
+  width: 26rem;
+  height: 100%;
+  background: linear-gradient(to bottom, rgb(var(--beam) / 0.16), rgb(var(--beam) / 0.04) 55%, transparent 88%);
+  clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 0;
+  transform: rotate(var(--from));
+  animation: beam-sway var(--sway, 11s) ease-in-out infinite alternate;
+}
+.stage-beam-gold-a { --beam: 236 200 127; --from: -24deg; --to: -8deg; --sway: 11s; left: 2%; }
+.stage-beam-amber { --beam: 240 160 75; --from: -6deg; --to: 10deg; --sway: 13s; left: 26%; }
+.stage-beam-rose { --beam: 232 140 130; --from: 8deg; --to: -10deg; --sway: 12s; right: 26%; }
+.stage-beam-gold-b { --beam: 236 200 127; --from: 22deg; --to: 6deg; --sway: 10s; right: 2%; }
+@keyframes beam-sway {
+  to {
+    transform: rotate(var(--to));
+  }
+}
+
+/* Warm light rising from the stage floor. */
+.stage-glow {
+  position: absolute;
+  inset: auto -10% -30% -10%;
+  height: 60%;
+  background: radial-gradient(ellipse at 50% 100%, rgb(226 183 102 / 0.22), rgb(150 96 40 / 0.08) 45%, transparent 70%);
+}
+
+/* Gold shimmer travelling through text (landing "Entertainment."). Use with bg-clip-text. */
+.gold-shimmer {
+  background-image: linear-gradient(100deg, #cf9f4c 0%, #ecc87f 30%, #fdf8ec 45%, #ecc87f 60%, #cf9f4c 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-shimmer 6s ease-in-out infinite;
+}
+@keyframes gold-shimmer {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: 0% 0;
+  }
+}
+
+/* Light sweeping across a gold button every few seconds. */
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: btn-shine 3.6s ease-in-out infinite 1.5s;
+}
+@keyframes btn-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  35%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* Soft gold ring pulsing out from the main call to action. */
+.cta-pulse {
+  animation: cta-pulse 2.8s ease-out infinite 1.2s;
+}
+@keyframes cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(226 183 102 / 0.45);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 18px rgb(226 183 102 / 0);
+  }
+}
+
+/* Embers rising over the landing (studio/Embers). */
+.ember {
+  position: absolute;
+  bottom: -2%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fdf8ec 0%, #ecc87f 45%, rgb(226 183 102 / 0) 70%);
+  opacity: 0;
+  animation: ember-rise linear infinite;
+}
+@keyframes ember-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate3d(var(--sway, 30px), -95vh, 0) scale(0.4);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ember {
+    display: none;
+  }
+}
+
+/* Logo spotlights (Studio header): one cone from each side of the logo + name, crossing over the
+   text like the brand banner. They sweep slowly and breathe; clipped by the header. */
+.header-spot {
+  position: absolute;
+  top: -1.75rem;
+  width: 5rem;
+  height: 9rem;
+  background: linear-gradient(to bottom, rgb(249 237 208 / 0.55), rgb(226 183 102 / 0.18) 45%, transparent 80%);
+  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 0;
+  transform: rotate(var(--from));
+  pointer-events: none;
+  animation: spot-sweep 4.5s ease-in-out infinite alternate;
+}
+.header-spot-left {
+  --from: -50deg;
+  --to: -25deg;
+}
+.header-spot-right {
+  --from: 50deg;
+  --to: 25deg;
+  animation-delay: -2.25s;
+}
+@keyframes spot-sweep {
+  from {
+    transform: rotate(var(--from));
+    opacity: 0.6;
+  }
+  to {
+    transform: rotate(var(--to));
+    opacity: 1;
+  }
+}
+
+/* Gold-to-ivory brand name with a soft glow (BrandMark on dark). */
+.brand-glow {
+  background-image: linear-gradient(90deg, #e2b766 0%, #f3dba6 35%, #fdf8ec 70%, #f6f1e7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgb(226 183 102 / 0.35));
+}
+
+/* Fine gold hairline used on premium surfaces. */
+.gold-hairline {
+  background: linear-gradient(90deg, transparent, rgb(226 183 102 / 0.55), transparent);
+  height: 1px;
+}
+
+/* Gold dust drifting down inside a hero (components/ui/GoldDust). Limited to a few flakes. */
+.gold-flake {
+  position: absolute;
+  top: -6%;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #f9edd0, #e2b766 55%, #946f30);
+  opacity: 0;
+  animation: gold-fall linear infinite;
+}
+@keyframes gold-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate3d(var(--drift, 20px), 110vh, 0) rotate(540deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gold-flake {
+    display: none;
+  }
+}
+
+/* Stagger helper for CSS-only lists: children rise one after another. */
+.stagger > * {
+  animation: var(--animate-rise);
+}
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(n + 5) { animation-delay: 160ms; }
+
+/* Respect reduced motion everywhere: keep state changes, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Guest Studio step change: the new step's blocks (left column, right column…) rise in one after
+   another. Transform + opacity only, so it stays light. Fill mode is `backwards` so no transform
+   is left behind afterwards (that would break sticky panels and fixed dialogs inside). */
+.step-stagger > * > * {
+  animation: step-rise 560ms var(--ease-premium) backwards;
+}
+.step-stagger > * > *:nth-child(2) {
+  animation-delay: 90ms;
+}
+.step-stagger > * > *:nth-child(3) {
+  animation-delay: 170ms;
+}
+.step-stagger > * > *:nth-child(n + 4) {
+  animation-delay: 230ms;
+}
+@keyframes step-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+/* Press ripple (useRipple): spreads from the press point and fades. Colour = --ripple, else the
+   text colour. Transform + opacity only. */
+.ripple {
+  position: absolute;
+  z-index: -1; /* under the label: hosts are `isolate` */
+  border-radius: 9999px;
+  pointer-events: none;
+  background: var(--ripple, currentColor);
+  opacity: 0.55;
+  transform: scale(0);
+  animation: ripple 700ms var(--ease-premium) forwards;
+}
+@keyframes ripple {
+  60% {
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Guest Studio (StudioLayout adds the class to <html>): the page scrolls, but no scrollbar shows. */
+html.no-scrollbar {
+  scrollbar-width: none;
+}
+html.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
