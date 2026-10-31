@@ -18,11 +18,11 @@ import { STUDIO_NEW_QUOTE } from '../steps';
 
 /** Headline lines rise out from behind a mask, one after another. */
 const lines: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.14, delayChildren: 0.1 } } };
-const lineUp: Variants = { hidden: { y: '110%' }, show: { y: '0%', transition: { duration: 0.9, ease: EASE } } };
+const lineUp: Variants = { hidden: { y: '130%' }, show: { y: '0%', transition: { duration: 0.9, ease: EASE } } };
 
 function Line({ className, children }: { className: string; children: React.ReactNode }) {
   return (
-    <span className={`block overflow-hidden pb-[0.08em] ${className}`}>
+    <span className={`block overflow-hidden pb-[0.22em] -mb-[0.14em] pr-[0.08em] ${className}`}>
       <m.span variants={lineUp} className="block">
         {children}
       </m.span>

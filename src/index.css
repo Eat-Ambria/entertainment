@@ -339,7 +339,7 @@ body {
   background: var(--ripple, currentColor);
   opacity: 0.55;
   transform: scale(0);
-  animation: ripple 700ms var(--ease-premium) forwards;
+  animation: ripple var(--ripple-ms, 700ms) var(--ease-premium) forwards;
 }
 @keyframes ripple {
   60% {
@@ -357,4 +357,11 @@ html.no-scrollbar {
 }
 html.no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Dashboard pipeline bar segments grow in from the left. */
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
 }
