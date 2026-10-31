@@ -16,7 +16,6 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatPhone } from '@/lib/phone';
 import { LOGO_TYPES, uploadImage, userFilePath, validateImage } from '@/lib/storage';
 import { validateProfile, type ProfileForm } from './settingsValidation';
-import { LandingPhotoUploader } from '../settings/LandingPhotoUploader';
 import { PerformerPhotosUploader } from '../settings/PerformerPhotosUploader';
 
 function Section({ icon, title, description, children }: { icon: IconName; title: string; description: string; children: React.ReactNode }) {
@@ -162,9 +161,6 @@ export default function SettingsPage() {
           </div>
           <div className="mt-5">
             <PerformerPhotosUploader />
-          </div>
-          <div className="mt-5">
-            <LandingPhotoUploader />
           </div>
         </Section>
 

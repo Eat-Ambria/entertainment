@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const pipeline = [
     { label: 'Draft', value: drafts, cls: 'bg-amber-400' },
     { label: 'Confirmed', value: confirmed, cls: 'bg-emerald-500' },
-    { label: 'Cancelled', value: cancelled, cls: 'bg-slate-300' },
+    { label: 'Cancelled', value: cancelled, cls: 'bg-rose-500' },
   ];
   const pipelineTotal = pipeline.reduce((n, p) => n + (p.value ?? 0), 0);
   const tiles = NAV_ITEMS.filter((n) => n.to !== ADMIN_ROOT);

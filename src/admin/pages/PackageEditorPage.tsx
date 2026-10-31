@@ -277,14 +277,25 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
     }
   }
 
+  const tierName = tiers.find((t) => t.id === form.tier_id)?.name;
+  const displayPrice = parseMoney(form.display_price);
+  const hasImage = Boolean(preview || imagePath);
+
   return (
-    <form onSubmit={onSubmit} noValidate className="pb-24">
-      <div className="mb-6 flex items-center gap-2 text-sm">
+    <form onSubmit={onSubmit} noValidate className="pb-28">
+      <div className="mb-4 flex items-center gap-2 text-sm">
         <Link to="/admin/packages" className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800">
           <Icon name="chevronLeft" size={16} /> Packages
         </Link>
       </div>
-      <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{pkg ? `Edit ${pkg.name}` : 'New package'}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{pkg ? `Edit ${pkg.name}` : 'New package'}</h1>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${form.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+        >
+          {form.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </div>
       <p className="mt-1 text-sm text-slate-500">Every package is available for every function — tag functions to show it first for them.</p>
 
       {formError && (
@@ -293,218 +304,256 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
         </div>
       )}
 
-      <div className="mt-6 space-y-6">
-        {/* Details */}
-        <section aria-label="Package details" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-6 md:grid-cols-[15rem_minmax(0,1fr)]">
-            {/* Image + status */}
-            <div className="space-y-4">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-6">
+          {/* 1 · Basics */}
+          <section aria-label="Package details" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <StepTitle n={1} title="Basics" hint="Name, tier and the functions it suits." />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <TextField label="Package name" value={form.name} onChange={set('name')} error={errors.name} placeholder="e.g. Royal Package" />
               <div>
-                {preview ? (
-                  <img src={preview} alt="" className="aspect-4/3 w-full rounded-lg object-cover" />
-                ) : (
-                  <ImageThumb bucket="package-images" path={imagePath} alt="" fill className="rounded-lg" />
-                )}
-                <div className="mt-2 flex gap-2">
-                  <input ref={fileRef} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" onChange={pickFile} />
-                  <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>
-                    <Icon name="upload" size={16} /> {preview || imagePath ? 'Replace' : 'Add image'}
-                  </Button>
-                  {(preview || imagePath) && (
-                    <Button
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() => {
-                        setFile(null);
-                        setPreview(null);
-                        setImagePath(null);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
-                <span>
-                  <span className="block text-sm font-medium text-slate-800">Active</span>
-                  <span className="block text-xs text-slate-500">Shown in the Guest Studio.</span>
-                </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={form.is_active}
-                  onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                  className="h-5 w-9 cursor-pointer appearance-none rounded-full bg-slate-300 transition checked:bg-brand-600 relative before:absolute before:left-0.5 before:top-0.5 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition checked:before:translate-x-4"
-                />
-              </label>
-            </div>
-
-            {/* Fields */}
-            <div className="space-y-5">
-              <div className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Basics</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <TextField label="Package name" value={form.name} onChange={set('name')} error={errors.name} placeholder="e.g. Royal Package" />
-                  <div>
-                    <label htmlFor="pkg-tier" className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Tier
-                    </label>
-                    <select
-                      id="pkg-tier"
-                      value={form.tier_id}
-                      onChange={(e) => setForm((f) => ({ ...f, tier_id: e.target.value }))}
-                      aria-invalid={errors.tier_id ? true : undefined}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm"
-                    >
-                      {tiers.length === 0 && <option value="">No tiers available</option>}
-                      {tiers.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.tier_id && <p className="mt-1.5 text-sm text-rose-600">{errors.tier_id}</p>}
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FunctionsPicker value={form.function_ids} onChange={(function_ids) => setForm((f) => ({ ...f, function_ids }))} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 border-t border-slate-100 pt-5">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Shown to guests</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <TextField
-                    label="Display price"
-                    prefix="₹"
-                    inputMode="decimal"
-                    value={form.display_price}
-                    onChange={set('display_price')}
-                    error={errors.display_price}
-                    hint="Optional. Shown on the package card."
-                  />
-                  <TextField
-                    label="Video link"
-                    type="url"
-                    value={form.video_url}
-                    onChange={set('video_url')}
-                    error={errors.video_url}
-                    placeholder="https://youtube.com/…"
-                    hint="Optional."
-                  />
-                  <div className="sm:col-span-2">
-                    <label htmlFor="pkg-desc" className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Description
-                    </label>
-                    <textarea
-                      id="pkg-desc"
-                      rows={2}
-                      value={form.description}
-                      onChange={set('description')}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                      placeholder="Optional. A short line guests will see."
-                    />
-                    {errors.description && <p className="mt-1.5 text-sm text-rose-600">{errors.description}</p>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Elements */}
-        <section aria-label="Package elements" className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 font-semibold text-slate-900">
-                Elements
-                <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">{selected.size} selected</span>
-              </h2>
-              <p className="text-sm text-slate-500">Tick the elements in this package and set their default quantity.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={onlySelected}
-                  onChange={(e) => setOnlySelected(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600"
-                />
-                Selected only
-              </label>
-              <label className="relative">
-                <span className="sr-only">Filter elements</span>
-                <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Filter elements"
-                  className="w-44 rounded-lg border border-slate-300 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                />
-              </label>
-            </div>
-          </div>
-
-          {elements.length === 0 ? (
-            <div className="p-6">
-              <EmptyState
-                icon="elements"
-                title="No elements yet"
-                description="Add elements first, then come back to build packages."
-                action={
-                  <Link to="/admin/elements" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                    Go to Elements
-                  </Link>
-                }
-              />
-            </div>
-          ) : (
-            <div className="max-h-[60vh] overflow-auto">
-              <table className="w-full min-w-160 text-sm">
-                <thead className="sticky top-0 z-10 bg-white">
-                  <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    <th className="px-4 py-2.5">
-                      <span className="sr-only">Include</span>
-                    </th>
-                    <th className="px-2 py-2.5">Element</th>
-                    <th className="px-4 py-2.5 text-right">Guest rate</th>
-                    <th className="px-4 py-2.5 text-right">Default qty</th>
-                    <th className="px-4 py-2.5 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {visible.map((el) => (
-                    <ElementRow
-                      key={el.id}
-                      el={el}
-                      qty={selected.get(el.id)}
-                      error={errors.itemQty?.[el.id]}
-                      onToggle={onToggle}
-                      onQty={onQty}
-                    />
+                <label htmlFor="pkg-tier" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Tier
+                </label>
+                <select
+                  id="pkg-tier"
+                  value={form.tier_id}
+                  onChange={(e) => setForm((f) => ({ ...f, tier_id: e.target.value }))}
+                  aria-invalid={errors.tier_id ? true : undefined}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                >
+                  {tiers.length === 0 && <option value="">No tiers available</option>}
+                  {tiers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
-                </tbody>
-              </table>
-              {visible.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No elements match.</p>}
-              {elements.length >= PICKER_LIMIT && (
-                <p className="p-3 text-center text-xs text-slate-400">Showing the first {PICKER_LIMIT} elements.</p>
-              )}
+                </select>
+                {errors.tier_id && <p className="mt-1.5 text-sm text-rose-600">{errors.tier_id}</p>}
+              </div>
+              <div className="sm:col-span-2">
+                <FunctionsPicker value={form.function_ids} onChange={(function_ids) => setForm((f) => ({ ...f, function_ids }))} />
+              </div>
             </div>
-          )}
-        </section>
+
+            <div className="mt-6 border-t border-slate-100 pt-5">
+              <StepTitle n={2} title="Shown to guests" hint="What the guest sees on the package card." />
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Display price"
+                  prefix="₹"
+                  inputMode="decimal"
+                  value={form.display_price}
+                  onChange={set('display_price')}
+                  error={errors.display_price}
+                  hint="Optional. Shown on the package card."
+                />
+                <TextField
+                  label="Video link"
+                  type="url"
+                  value={form.video_url}
+                  onChange={set('video_url')}
+                  error={errors.video_url}
+                  placeholder="https://youtube.com/…"
+                  hint="Optional."
+                />
+                <div className="sm:col-span-2">
+                  <label htmlFor="pkg-desc" className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    id="pkg-desc"
+                    rows={2}
+                    value={form.description}
+                    onChange={set('description')}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    placeholder="Optional. A short line guests will see."
+                  />
+                  {errors.description && <p className="mt-1.5 text-sm text-rose-600">{errors.description}</p>}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 3 · Elements */}
+          <section aria-label="Package elements" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <StepBadge n={3} />
+                <div>
+                  <h2 className="flex items-center gap-2 font-semibold text-slate-900">
+                    Elements
+                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">{selected.size} selected</span>
+                  </h2>
+                  <p className="text-sm text-slate-500">Tick the elements in this package and set their default quantity.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={onlySelected}
+                    onChange={(e) => setOnlySelected(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 accent-brand-600"
+                  />
+                  Selected only
+                </label>
+                <label className="relative">
+                  <span className="sr-only">Filter elements</span>
+                  <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Filter elements"
+                    className="w-48 rounded-full border border-slate-300 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {elements.length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  icon="elements"
+                  title="No elements yet"
+                  description="Add elements first, then come back to build packages."
+                  action={
+                    <Link to="/admin/elements" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+                      Go to Elements
+                    </Link>
+                  }
+                />
+              </div>
+            ) : (
+              <div className="max-h-[60vh] overflow-auto">
+                <table className="w-full min-w-160 text-sm">
+                  <thead className="sticky top-0 z-10 bg-slate-50">
+                    <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2.5">
+                        <span className="sr-only">Include</span>
+                      </th>
+                      <th className="px-2 py-2.5">Element</th>
+                      <th className="px-4 py-2.5 text-right">Guest rate</th>
+                      <th className="px-4 py-2.5 text-right">Default qty</th>
+                      <th className="px-4 py-2.5 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {visible.map((el) => (
+                      <ElementRow key={el.id} el={el} qty={selected.get(el.id)} error={errors.itemQty?.[el.id]} onToggle={onToggle} onQty={onQty} />
+                    ))}
+                  </tbody>
+                </table>
+                {visible.length === 0 && <p className="p-6 text-center text-sm text-slate-500">No elements match.</p>}
+                {elements.length >= PICKER_LIMIT && <p className="p-3 text-center text-xs text-slate-400">Showing the first {PICKER_LIMIT} elements.</p>}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Live guest preview + status (stays in view) */}
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <p className="flex items-center gap-1.5 border-b border-slate-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <Icon name="eye" size={14} /> Guest card preview
+            </p>
+            <div className="p-4">
+              <input ref={fileRef} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" onChange={pickFile} />
+              {/* The package card as guests see it in the Studio (dark stage). */}
+              <div className="overflow-hidden rounded-xl bg-stage-950 text-ivory ring-1 ring-black/5">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={busy}
+                  aria-label={hasImage ? 'Change package photo' : 'Choose package photo'}
+                  className="group relative block w-full overflow-hidden"
+                >
+                  {preview ? (
+                    <img src={preview} alt="" className="aspect-16/10 w-full object-cover" />
+                  ) : (
+                    <ImageThumb bucket="package-images" path={imagePath} alt="" fill dark aspect="aspect-16/10" />
+                  )}
+                  <span className="pointer-events-none absolute inset-0 bg-linear-to-t from-stage-950/95 via-stage-950/20 to-transparent" />
+                  {tierName && (
+                    <span className="absolute top-3 left-3 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-ivory ring-1 ring-white/20">
+                      {tierName}
+                    </span>
+                  )}
+                  <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-ivory opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                    <Icon name="upload" size={12} /> {hasImage ? 'Change' : 'Add photo'}
+                  </span>
+                  <span className="absolute inset-x-3 bottom-2.5 truncate text-left font-display text-lg text-ivory">{form.name.trim() || 'Package name'}</span>
+                </button>
+                <div className="space-y-2 px-3 py-3">
+                  <p className="line-clamp-2 min-h-8 text-xs text-ivory/65">{form.description.trim() || 'A short line guests will see.'}</p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="num font-semibold text-brand-300">{displayPrice !== null ? formatINR(displayPrice) : 'Price not shown'}</span>
+                    {form.video_url.trim() && (
+                      <span className="flex items-center gap-1 text-brand-300">
+                        <Icon name="present" size={12} /> Video
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy} className="flex-1 py-2">
+                  <Icon name="upload" size={16} /> {hasImage ? 'Replace' : 'Add image'}
+                </Button>
+                {hasImage && (
+                  <Button
+                    variant="ghost"
+                    disabled={busy}
+                    className="py-2"
+                    onClick={() => {
+                      setFile(null);
+                      setPreview(null);
+                      setImagePath(null);
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+            <span>
+              <span className="block text-sm font-medium text-slate-800">Active</span>
+              <span className="block text-xs text-slate-500">Shown in the Guest Studio.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={form.is_active}
+              onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
+              className="relative h-5 w-9 cursor-pointer appearance-none rounded-full bg-slate-300 transition before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition checked:bg-brand-600 checked:before:translate-x-4"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Elements</p>
+              <p className="num mt-1 font-display text-2xl text-slate-900">{selected.size}</p>
+            </div>
+            <div className="rounded-2xl border border-brand-200 bg-linear-to-br from-brand-50 to-white p-4 shadow-sm">
+              <p className="text-xs text-brand-800/70">Package value</p>
+              <p className="num mt-1 truncate font-display text-xl text-brand-800">{formatINR(total)}</p>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {/* Sticky summary */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur lg:left-64">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgb(15_23_42/0.06)] backdrop-blur lg:left-64">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="text-sm text-slate-600" aria-live="polite">
             <span className="font-semibold text-slate-900">{selected.size}</span> {selected.size === 1 ? 'element' : 'elements'} ·
-            Elements total <span className="num font-semibold text-slate-900">{formatINR(total)}</span>
-            {parseMoney(form.display_price) !== null && (
-              <> · Display price <span className="num font-semibold text-slate-900">{formatINR(parseMoney(form.display_price)!)}</span></>
+            Elements total <span className="num font-semibold text-brand-700">{formatINR(total)}</span>
+            {displayPrice !== null && (
+              <> · Display price <span className="num font-semibold text-slate-900">{formatINR(displayPrice)}</span></>
             )}
           </p>
           <div className="flex gap-2">
@@ -528,6 +577,26 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
         />
       )}
     </form>
+  );
+}
+
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white shadow-sm" aria-hidden="true">
+      {n}
+    </span>
+  );
+}
+
+function StepTitle({ n, title, hint }: { n: number; title: string; hint: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <StepBadge n={n} />
+      <div>
+        <h2 className="font-semibold text-slate-900">{title}</h2>
+        <p className="text-sm text-slate-500">{hint}</p>
+      </div>
+    </div>
   );
 }
 

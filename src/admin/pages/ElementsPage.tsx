@@ -23,6 +23,7 @@ import { formatQty } from '@/lib/numbers';
 import { dbErrorMessage, deleteErrorMessage } from '@/lib/dbErrors';
 import type { Element, ElementSort, ElementStatus } from '../elements/elementsApi';
 import { ElementFormDialog } from '../elements/ElementFormDialog';
+import { TabButton } from '@/components/ui/TabButton';
 import { useDeleteElement, useElementList, useSetElementActive } from '../elements/useElements';
 
 const SORT_OPTIONS: { value: ElementSort; label: string }[] = [
@@ -108,18 +109,9 @@ export default function ElementsPage() {
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div role="tablist" aria-label="Status" className="inline-flex rounded-lg bg-slate-100 p-1 text-sm">
             {(['active', 'archived'] as const).map((s) => (
-              <button
-                key={s}
-                role="tab"
-                type="button"
-                aria-selected={status === s}
-                onClick={() => setParam('status', s === 'active' ? null : s)}
-                className={`rounded-md px-3 py-1.5 font-medium capitalize ${
-                  status === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
+              <TabButton key={s} selected={status === s} onClick={() => setParam('status', s === 'active' ? null : s)} className="capitalize">
                 {s}
-              </button>
+              </TabButton>
             ))}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">

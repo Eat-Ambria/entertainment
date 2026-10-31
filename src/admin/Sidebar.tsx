@@ -49,15 +49,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     end={item.to === ADMIN_ROOT}
                     onClick={onClose}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ease-premium ${
-                        isActive
-                          ? 'bg-brand-500/20 text-ivory shadow-[inset_3px_0_0_var(--color-brand-400)]'
-                          : 'text-ivory/65 hover:bg-white/5 hover:text-ivory'
+                      `group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ease-premium ${
+                        isActive ? 'bg-brand-500/20 text-ivory shadow-[inset_3px_0_0_var(--color-brand-400)]' : 'text-ivory/65 hover:text-ivory'
                       }`
                     }
                   >
-                    <Icon name={item.icon} size={18} />
-                    {item.label}
+                    {({ isActive }) => (
+                      <>
+                        {/* Hover: a soft gold wash sweeps in from the left and a gold edge grows. */}
+                        {!isActive && (
+                          <>
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 origin-left scale-x-0 rounded-lg bg-linear-to-r from-brand-400/20 via-brand-400/8 to-transparent transition-transform duration-300 ease-premium group-hover:scale-x-100"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute top-1/2 left-0 h-0 w-0.75 -translate-y-1/2 rounded-full bg-brand-400 transition-[height] duration-300 ease-premium group-hover:h-5"
+                            />
+                          </>
+                        )}
+                        <Icon
+                          name={item.icon}
+                          size={18}
+                          className={`relative transition-[color,transform] duration-300 ease-premium group-hover:scale-110 ${isActive ? 'text-brand-300' : 'group-hover:text-brand-300'}`}
+                        />
+                        <span className="relative transition-transform duration-300 ease-premium group-hover:translate-x-1">{item.label}</span>
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -67,7 +86,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="border-t border-white/10 p-3">
           <Link
             to={STUDIO_ROOT}
-            className="flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-brand-500 to-brand-300 px-3 py-2.5 text-sm font-medium text-ivory shadow-lg shadow-brand-950/50 transition duration-200 ease-premium hover:brightness-110"
+            className="group flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-brand-500 to-brand-300 px-3 py-2.5 text-sm font-medium text-ivory shadow-lg shadow-brand-950/50 transition duration-200 ease-premium hover:-translate-y-0.5 hover:shadow-brand-500/30 hover:brightness-110"
           >
             <Icon name="present" size={18} />
             Open Guest Studio

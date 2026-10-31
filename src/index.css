@@ -333,23 +333,23 @@ body {
    text colour. Transform + opacity only. */
 .ripple {
   position: absolute;
-  z-index: -1; /* under the label: hosts are `isolate` */
+  z-index: -1; /* under the label: hosts use `isolate` */
   border-radius: 9999px;
   pointer-events: none;
   background: var(--ripple, currentColor);
-  opacity: 0.55;
-  transform: scale(0);
-  animation: ripple var(--ripple-ms, 700ms) var(--ease-premium) forwards;
+  opacity: 0.5;
+  transform: scale(0.12);
+  /* Starts the instant the pointer goes down and spreads fast (ease-out), then fades. */
+  animation: ripple var(--ripple-ms, 420ms) cubic-bezier(0, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
 }
 @keyframes ripple {
-  60% {
-    opacity: 0.35;
-  }
   to {
     transform: scale(1);
     opacity: 0;
   }
 }
+
 
 /* Guest Studio (StudioLayout adds the class to <html>): the page scrolls, but no scrollbar shows. */
 html.no-scrollbar {

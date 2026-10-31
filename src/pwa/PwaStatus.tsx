@@ -28,7 +28,7 @@ export function PwaStatus() {
         </div>
       )}
       {needRefresh && (
-        <div role="status" className="fixed bottom-4 right-4 z-[70] flex max-w-sm items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
+        <div role="status" className="fixed bottom-6 left-1/2 z-[70] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-rise items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
           <p className="text-sm text-slate-700">A new version of the app is available.</p>
           <button
             type="button"

@@ -2,7 +2,7 @@
  * My Workspace shell (internal): sidebar + top bar + routed page content.
  * Lazy pages load inside Suspense.
  */
-import { Suspense, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { navItemFor } from './nav';
@@ -13,15 +13,20 @@ import { Toaster } from '@/components/ui/Toaster';
 import { m } from 'motion/react';
 import { MotionProvider } from '@/components/ui/MotionProvider';
 import { quick } from '@/lib/motion';
+import { useGlobalRipple } from '@/lib/useGlobalRipple';
 
 export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   const current = navItemFor(pathname);
 
+  // Every link, button and tab in the Workspace gets a press ripple.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useGlobalRipple(rootRef);
   return (
     <MotionProvider>
-    <div className="flex h-dvh bg-slate-50">
+    {/* Pinned to the viewport: only <main> scrolls, so the page itself can never scroll or shift. */}
+    <div ref={rootRef} className="fixed inset-0 flex overflow-hidden bg-slate-50">
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">

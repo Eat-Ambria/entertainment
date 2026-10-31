@@ -13,7 +13,7 @@ const VARIANTS: Record<Variant, string> = {
   secondary: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:outline-brand-600',
   ghost: 'text-slate-600 hover:bg-slate-100 focus-visible:outline-brand-600',
   danger: 'bg-rose-600 text-white shadow-sm hover:bg-rose-700 focus-visible:outline-rose-600',
-  gold: '[--ripple:rgb(92_58_12/0.75)] [--ripple-ms:1300ms] rounded-full! bg-brand-400 font-semibold text-stage-950 shadow-lg shadow-black/30 hover:bg-brand-300 enabled:active:bg-brand-500 enabled:active:shadow-[0_0_0_4px_rgb(226_183_102/0.25)] duration-300! focus-visible:outline-brand-300',
+  gold: '[--ripple:rgb(92_58_12/0.75)] rounded-full! bg-brand-400 font-semibold text-stage-950 shadow-lg shadow-black/30 hover:bg-brand-300 enabled:active:bg-brand-500 enabled:active:shadow-[0_0_0_4px_rgb(226_183_102/0.25)] duration-300! focus-visible:outline-brand-300',
   'outline-light': 'rounded-full! border border-ivory/35 text-ivory hover:border-ivory/70 hover:bg-white/5 focus-visible:outline-brand-300',
 };
 
@@ -38,6 +38,7 @@ export function Button({
   const ripple = useRipple();
   return (
     <button
+      data-own-ripple
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}

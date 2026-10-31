@@ -19,6 +19,7 @@ import { formatINR } from '@/lib/money';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import type { PackageStatus, PackageSummary } from '../packages/packagesApi';
 import { useDeletePackage, usePackageList, useSetPackageActive, useTiers } from '../packages/usePackages';
+import { TabButton } from '@/components/ui/TabButton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const linkBtn =
@@ -165,18 +166,9 @@ export default function PackagesPage() {
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div role="tablist" aria-label="Status" className="inline-flex self-start rounded-lg bg-slate-100 p-1 text-sm">
           {(['active', 'inactive'] as const).map((s) => (
-            <button
-              key={s}
-              role="tab"
-              type="button"
-              aria-selected={status === s}
-              onClick={() => setParam('status', s === 'active' ? null : s)}
-              className={`rounded-md px-3 py-1.5 font-medium capitalize ${
-                status === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
+            <TabButton key={s} selected={status === s} onClick={() => setParam('status', s === 'active' ? null : s)} className="capitalize">
               {s}
-            </button>
+            </TabButton>
           ))}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">

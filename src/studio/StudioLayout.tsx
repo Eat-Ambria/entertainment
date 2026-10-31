@@ -3,9 +3,8 @@
  * skill), glass header with the business brand, no sidebar, no internal data.
  * Code under src/studio must not import from src/admin (enforced by ESLint).
  */
-import { Suspense, useContext, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { AuthContext } from '@/auth/AuthContext';
 import { Toaster } from '@/components/ui/Toaster';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { Icon } from '@/components/ui/Icon';
@@ -16,7 +15,6 @@ import { BackdropPhoto } from './BackdropPhoto';
 import { Embers } from './Embers';
 
 export function StudioLayout() {
-  const profile = useContext(AuthContext)?.profile;
   const { pathname } = useLocation();
   const landing = pathname === '/studio';
   // The Studio is shown to guests: the page still scrolls, but without a visible scrollbar.
@@ -29,7 +27,7 @@ export function StudioLayout() {
     <div className="stage-bg relative isolate flex min-h-dvh flex-col overflow-x-clip text-ivory">
       {!landing && <StageLights />}
       <BackdropPhoto
-        path={profile?.hero_image_path}
+        path={null} /* always the built-in concert photo (the Settings upload was removed) */
         strength={landing ? 1 : 0.14}
       />
       {landing && <Embers />}

@@ -24,6 +24,7 @@ import { formatQty } from '@/lib/numbers';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import type { RateLogRow, Trend, VendorLatestRow, VendorRateRow } from '../rates/ratesApi';
 import { useRateElements, useRateLogs, useVendorLatest, useVendorPairHistory, useVendors, useVoidVendorEntry } from '../rates/useRates';
+import { TabButton } from '@/components/ui/TabButton';
 import { VendorEntryDialog } from '../rates/VendorEntryDialog';
 
 type Tab = 'vendor' | 'master' | 'override';
@@ -380,16 +381,9 @@ export default function RateHistoryPage() {
       />
       <div role="tablist" aria-label="Rate history" className="mb-5 inline-flex flex-wrap rounded-lg bg-slate-100 p-1 text-sm">
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            type="button"
-            aria-selected={tab === t.key}
-            onClick={() => setParams(t.key === 'vendor' ? {} : { tab: t.key })}
-            className={`rounded-md px-3 py-1.5 font-medium ${tab === t.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
+          <TabButton key={t.key} selected={tab === t.key} onClick={() => setParams(t.key === 'vendor' ? {} : { tab: t.key })}>
             {t.label}
-          </button>
+          </TabButton>
         ))}
       </div>
       {tab === 'vendor' && <VendorTab />}
