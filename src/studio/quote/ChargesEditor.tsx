@@ -65,7 +65,7 @@ export const ChargesEditor = memo(function ChargesEditor({
   }
 
   return (
-    <section aria-label="Additional charges" className="rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md p-5">
+    <section aria-label="Additional charges" className="rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50 p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-display text-xl text-ivory">Additional charges</h2>

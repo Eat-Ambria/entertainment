@@ -19,7 +19,7 @@ export function GuestSummary() {
   const venue = options.data?.venues.find((v) => v.id === g.venueId)?.name;
   const sessionName = options.data?.sessions.find((x) => x.id === g.sessionId)?.name;
   return (
-    <div className="flex w-full items-center gap-3 rounded-2xl border border-brand-300/25 bg-stage-900/80 px-4 py-3 shadow-xl shadow-black/40 backdrop-blur-md lg:w-[22rem] xl:w-[26rem]">
+    <div className="flex w-full items-center gap-3 rounded-2xl border border-brand-300/25 bg-stage-900/80 px-4 py-3 shadow-xl shadow-black/40 lg:w-[22rem] xl:w-[26rem]">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 ring-1 ring-brand-300/40">
         <Icon name="user" size={18} />
       </span>

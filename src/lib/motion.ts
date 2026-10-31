@@ -30,22 +30,12 @@ export const riseItem: Variants = {
 };
 
 /**
- * Step-to-step transition; `custom` = +1 going forward, -1 going back. The old step drifts out
- * and dims; the new one is unveiled by a wipe from the direction of travel while it glides in.
- * The clip is removed once done so shadows, dropdowns and dialogs are never cut off.
+ * Step-to-step transition; `custom` = +1 going forward, -1 going back. The old step fades and
+ * drifts out quickly, the new one glides in from the direction of travel. Only opacity + x
+ * (GPU-composited) — no clip-path or scale, which repaint the whole page every frame and stutter.
  */
 export const stepSlide: Variants = {
-  enter: (dir: number) => ({
-    opacity: 0,
-    x: dir * 32,
-    clipPath: dir > 0 ? 'inset(0% 100% 0% 0%)' : 'inset(0% 0% 0% 100%)',
-  }),
-  center: {
-    opacity: 1,
-    x: 0,
-    clipPath: 'inset(0% 0% 0% 0%)',
-    transition: { duration: 0.6, ease: EASE, opacity: { duration: 0.35, ease: EASE } },
-    transitionEnd: { clipPath: 'none' },
-  },
-  exit: (dir: number) => ({ opacity: 0, x: dir * -36, scale: 0.985, transition: { duration: 0.22, ease: EASE } }),
+  enter: (dir: number) => ({ opacity: 0, x: dir * 28 }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.42, ease: EASE } },
+  exit: (dir: number) => ({ opacity: 0, x: dir * -20, transition: { duration: 0.16, ease: EASE } }),
 };

@@ -171,7 +171,7 @@ function PackageSection({
 }) {
   const suffix = many ? ` in ${block.name}` : '';
   return (
-    <section id={`pkg-${block.id}`} aria-label={block.name} className="scroll-mt-40 overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md">
+    <section id={`pkg-${block.id}`} aria-label={block.name} className="scroll-mt-40 overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/4 px-4 py-3.5">
         <div>
           <h3 className="font-display text-xl text-ivory">
@@ -408,7 +408,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="min-w-0 space-y-6">
         <StepHeading step="customise" />
-        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-stage-900/70 px-4 py-2.5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-stage-900/70 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-center gap-3 text-sm text-ivory/75">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 ring-1 ring-brand-300/30">
               <Icon name={editRates ? 'edit' : 'check'} size={15} />
@@ -476,7 +476,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
       {/* Price summary — stays in view while the elements and charges are changed. */}
       <div className={`space-y-4 ${SIDE_STICKY}`}>
       <GuestSummary />
-      <aside aria-label="Price summary" className="relative overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md">
+      <aside aria-label="Price summary" className="relative overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50">
         <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgb(226_183_102/0.14),transparent_55%)]" />
         <h2 className="relative border-b border-white/10 px-5 py-3.5 font-mono text-[11px] font-normal uppercase tracking-[0.22em] text-brand-300">Price summary</h2>
         <div className="relative space-y-4 px-5 py-4">

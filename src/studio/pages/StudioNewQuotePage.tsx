@@ -51,8 +51,9 @@ export default function StudioNewQuotePage() {
 
   const goTo = useCallback(
     (s: StudioStepKey) => {
-      // The next step opens from the top, so its entrance animation is seen.
-      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+      // The next step opens from the top. Jump (no smooth scroll), so scrolling never runs
+      // at the same time as the step animation.
+      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'instant' });
       setParams((p) => {
         const n = new URLSearchParams(p);
         n.set('step', s);

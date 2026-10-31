@@ -86,7 +86,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
     <div className="space-y-5">
       {fireworks}
       {lockedMessage && (
-        <div ref={bannerRef} tabIndex={-1} role="alert" className="flex animate-rise flex-col gap-3 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 outline-none backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div ref={bannerRef} tabIndex={-1} role="alert" className="flex animate-rise flex-col gap-3 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 outline-none sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-start gap-2 text-sm text-amber-200">
             <Icon name="lock" size={18} className="mt-0.5 shrink-0" /> {lockedMessage}
           </p>
@@ -114,7 +114,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
 
         <aside
           aria-label="Quotation actions"
-          className="relative overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/90 p-5 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md lg:sticky lg:top-40"
+          className="relative overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/90 p-5 text-ivory shadow-2xl shadow-black/50 lg:sticky lg:top-40"
         >
           <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgb(226_183_102/0.14),transparent_55%)]" />
           <div className="relative">

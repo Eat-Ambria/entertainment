@@ -195,7 +195,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-      <section className="space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md">
+      <section className="space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50">
         {/* Lookup */}
         <section aria-label="Search" className="space-y-2.5 rounded-xl border border-white/10 bg-white/4 p-4">
           <div className="flex items-center gap-2">
@@ -347,7 +347,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
         <div className="flex-1 *:h-full">
           <LiveEventCard form={form} opts={opts} />
         </div>
-        <div className="rounded-2xl border border-white/10 bg-stage-900/85 p-4 shadow-xl shadow-black/40 backdrop-blur">
+        <div className="rounded-2xl border border-white/10 bg-stage-900/85 p-4 shadow-xl shadow-black/40">
           <p className="text-sm text-ivory/60">
             {picked.ref ? 'Details filled from LMS — check them before continuing.' : 'All fields except sub-venue are needed.'}
           </p>

@@ -84,7 +84,7 @@ export function PackageStep({ onBack, onDone }: Props) {
               className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]"
             />
             <span className="pointer-events-none absolute inset-0 bg-linear-to-t from-stage-950/95 via-stage-950/20 to-transparent" />
-            <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-ivory ring-1 ring-white/20 backdrop-blur">
+            <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-ivory ring-1 ring-white/20">
               {p.tier_name}
             </span>
             {p.for_function && (
@@ -132,7 +132,7 @@ export function PackageStep({ onBack, onDone }: Props) {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="min-w-0 space-y-4">
       <StepHeading step="package" />
-      <section aria-label="Packages" className="space-y-6 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md">
+      <section aria-label="Packages" className="space-y-6 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50">
       {packages.isLoading ? (
         <Spinner label="Loading packages…" />
       ) : packages.isError ? (
@@ -183,7 +183,7 @@ export function PackageStep({ onBack, onDone }: Props) {
 
       <div className={`space-y-4 ${SIDE_STICKY}`}>
       <GuestSummary />
-      <aside aria-label="Your selection" className="flex flex-col rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50 backdrop-blur-md">
+      <aside aria-label="Your selection" className="flex flex-col rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-300">Your selection</p>
         <p className="mt-2 font-display text-2xl leading-tight text-ivory" aria-live="polite">
           {selected.size === 0 ? 'No package yet' : `${selected.size} ${selected.size === 1 ? 'package' : 'packages'} selected`}
