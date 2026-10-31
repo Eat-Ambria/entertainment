@@ -29,7 +29,7 @@ export function AdminLayout() {
     <div ref={rootRef} className="fixed inset-0 flex overflow-hidden bg-slate-50">
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
           <button
             type="button"
             className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden"
