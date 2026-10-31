@@ -2,7 +2,7 @@
  * Sign-in screen: phone number + password. Accounts are created by the administrator,
  * so there is no sign-up link. Signed-in users are sent straight on.
  * Own look (not the Studio's glass panels): framed concert photo on the left, a quiet dark
- * sign-in column on the right with a faint emblem watermark.
+ * sign-in column on the right.
  */
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -16,7 +16,6 @@ import { TextField } from '@/components/ui/TextField';
 import { NotConfigured } from '@/routes/NotConfigured';
 import { InstallAppButton } from '@/pwa/InstallAppButton';
 import { normalizePhone } from '@/lib/phone';
-import { BRAND } from '@/lib/brand';
 import { asset } from '@/lib/asset';
 import { Icon } from '@/components/ui/Icon';
 
@@ -97,7 +96,6 @@ export default function LoginPage() {
       {/* Right: a quiet, dark sign-in column (no white card). */}
       <main className="relative flex items-center justify-center overflow-hidden px-6 py-12 sm:px-12">
         <span className="pointer-events-none absolute -top-40 -right-40 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgb(226_183_102/0.14),transparent_65%)]" />
-        <img src={asset('logo-mark.webp')} alt="" aria-hidden="true" className="pointer-events-none absolute -right-24 -bottom-24 h-96 w-96 rounded-full opacity-[0.05]" />
 
         <div className="relative w-full max-w-sm animate-rise">
           <div className="mb-10 lg:hidden">
@@ -138,14 +136,11 @@ export default function LoginPage() {
 
           <p className="mt-8 flex items-center gap-2 text-xs text-ivory/45">
             <Icon name="lock" size={14} className="shrink-0 text-brand-300/70" />
-            Forgot your password? Ask your administrator to reset it.
+            Forgot your password? Ask your admin to reset it.
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex justify-center">
             <InstallAppButton className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-brand-300 transition-colors duration-150 hover:bg-white/5 hover:text-brand-200" />
           </div>
-          <p className="mt-12 text-xs text-ivory/30">
-            {BRAND.name} {BRAND.product}
-          </p>
         </div>
       </main>
     </div>
