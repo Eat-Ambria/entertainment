@@ -70,10 +70,9 @@ export default function LoginPage() {
           <span className="absolute inset-0 bg-linear-to-t from-stage-950 via-stage-950/40 to-stage-950/10" />
           <span className="absolute inset-0 bg-linear-to-r from-stage-950/60 to-transparent" />
           <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
-            <BrandMark size="lg" tone="dark" />
+            <BrandMark size="lg" tone="dark" subtitle={null} />
             <div className="max-w-xl animate-rise">
-              <p className="font-mono text-xs uppercase tracking-[0.3em] text-brand-300">Pricing &amp; quotations</p>
-              <h2 className="mt-4 font-display text-5xl leading-[1.05] text-ivory xl:text-6xl">
+              <h2 className="font-display text-5xl leading-[1.05] text-ivory xl:text-6xl">
                 Every celebration,
                 {/* Padding keeps the italic descenders (y, p) inside the text-clipped gradient. */}
                 <span className="gold-shimmer -mb-3 block pr-3 pb-3 italic">perfectly priced.</span>
@@ -98,7 +97,7 @@ export default function LoginPage() {
 
         <div className="relative w-full max-w-sm animate-rise">
           <div className="mb-10 lg:hidden">
-            <BrandMark size="lg" tone="dark" />
+            <BrandMark size="lg" tone="dark" subtitle={null} />
           </div>
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-brand-300">Welcome back</p>
           <h1 className="mt-3 font-display text-4xl leading-none text-ivory">Sign in</h1>

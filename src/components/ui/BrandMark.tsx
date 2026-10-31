@@ -11,7 +11,8 @@ import { useSignedUrl } from '@/lib/storage';
 import { asset } from '@/lib/asset';
 
 interface BrandMarkProps {
-  subtitle?: string;
+  /** null hides the line under the name. */
+  subtitle?: string | null;
   size?: 'sm' | 'lg';
   tone?: 'light' | 'dark';
 }
@@ -35,11 +36,13 @@ export function BrandMark({ subtitle = BRAND.tagline, size = 'sm', tone = 'light
       )}
       <div className="min-w-0 leading-tight">
         <p className={`truncate font-display ${dark ? 'brand-glow' : 'text-slate-900'} ${lg ? 'text-xl' : 'text-base'}`}>{name}</p>
-        <p
-          className={`mt-0.5 truncate font-mono uppercase tracking-[0.2em] ${dark ? 'text-brand-300' : 'text-brand-700'} ${lg ? 'text-[11px]' : 'text-[10px]'}`}
-        >
-          {subtitle}
-        </p>
+        {subtitle && (
+          <p
+            className={`mt-0.5 truncate font-mono uppercase tracking-[0.2em] ${dark ? 'text-brand-300' : 'text-brand-700'} ${lg ? 'text-[11px]' : 'text-[10px]'}`}
+          >
+            {subtitle}
+          </p>
+          )}
       </div>
     </div>
   );
