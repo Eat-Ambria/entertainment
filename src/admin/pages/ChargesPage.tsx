@@ -12,7 +12,7 @@ export default function ChargesPage() {
         title="Additional charges"
         description="Transportation is a fixed amount per quote; labour is charged per labour, per package chosen."
       />
-      <div className="max-w-3xl">
+      <div>
         <ChargeRatesSection />
       </div>
     </>
