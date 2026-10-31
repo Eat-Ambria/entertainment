@@ -30,7 +30,7 @@ export function QuotationHero({ data }: { data: QuoteDocumentData }) {
           <m.p variants={riseItem} className="font-mono text-xs uppercase tracking-[0.2em] text-brand-300">
             Quotation · {data.quoteNo ?? 'Draft'}
           </m.p>
-          <m.p variants={riseItem} className="mt-3 font-display text-4xl leading-none uppercase text-ivory sm:text-5xl">
+          <m.p variants={riseItem} className="mt-3 font-display text-4xl leading-none uppercase text-ivory [overflow-wrap:anywhere] sm:text-5xl">
             {data.guestName || 'Your celebration'}
           </m.p>
           {eventLine && (

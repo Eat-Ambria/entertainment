@@ -44,7 +44,7 @@ export function LiveEventCard({ form, opts }: { form: GuestForm; opts: EventOpti
       <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgb(226_183_102/0.18),transparent_55%)]" />
       <div className="relative flex flex-1 flex-col">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brand-300">Your event</p>
-        <p className="mt-3 font-display text-2xl leading-tight uppercase text-ivory">
+        <p className="mt-3 font-display text-2xl leading-tight uppercase text-ivory [overflow-wrap:anywhere]">
           <Value value={form.guestName.trim()} placeholder="Guest name" />
         </p>
         <p className="mt-1 text-lg text-brand-200">

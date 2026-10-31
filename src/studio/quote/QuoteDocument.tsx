@@ -49,7 +49,7 @@ export function QuoteDocument({ data }: { data: QuoteDocumentData }) {
 
       <dl className="grid gap-6 border-b border-stone-200 py-6 sm:grid-cols-2">
         <Field label="Prepared for">
-          <span className="font-semibold text-slate-900">{data.guestName}</span>
+          <span className="font-semibold text-slate-900 [overflow-wrap:anywhere]">{data.guestName}</span>
           {data.phone && <span className="block text-slate-500">+91 {formatPhone(data.phone)}</span>}
         </Field>
         <Field label="Event">
