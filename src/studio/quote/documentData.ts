@@ -69,12 +69,9 @@ export function documentFromDraft(draft: QuoteDraft, options: EventOptions | und
       });
       return { name: b.name, tier: b.tier, items, subtotal: linesSubtotal(items) };
     }),
-    charges: draft.charges.flatMap((c) => {
-      const amount = parseMoney(c.amount);
-      return c.description.trim() && amount !== null ? [{ description: c.description.trim(), amount }] : [];
-    }),
+    charges: [], // additional charges were removed
     subtotal: summary.elementsSubtotal,
-    chargesTotal: summary.chargesTotal,
+    chargesTotal: 0,
     total: summary.finalTotal,
   };
 }

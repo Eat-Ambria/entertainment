@@ -100,7 +100,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
 
       {showErrors && !summary.valid && (
         <FormAlert>
-          {!summary.linesValid ? 'Go back to Customise and fix the highlighted elements.' : 'Go back to Customise and fix the highlighted charges.'}
+          Go back to Customise and fix the highlighted elements.
         </FormAlert>
       )}
 
@@ -142,7 +142,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
                 onClick={onBack}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-ivory/70 transition-colors duration-150 hover:bg-white/5 hover:text-ivory"
               >
-                <Icon name="edit" size={16} className="text-brand-300" /> Edit elements, rates & charges
+                <Icon name="edit" size={16} className="text-brand-300" /> Edit elements & rates
               </button>
             </div>
           </div>

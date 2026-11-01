@@ -18,7 +18,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { toast } from '@/components/ui/toast';
 import { formatINR } from '@/lib/money';
-import { parseMoney, parseQty, toInput } from '@/lib/numbers';
+import { parseQty, toInput } from '@/lib/numbers';
 import { lineAmount, linesSubtotal } from '@/lib/pricing';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { IMAGE_TYPES, uploadImage, userFilePath, validateImage } from '@/lib/storage';
@@ -278,25 +278,24 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
   }
 
   const tierName = tiers.find((t) => t.id === form.tier_id)?.name;
-  const displayPrice = parseMoney(form.display_price);
   const hasImage = Boolean(preview || imagePath);
 
   return (
     <form onSubmit={onSubmit} noValidate className="pb-28">
       <div className="mb-4 flex items-center gap-2 text-sm">
-        <Link to="/admin/packages" className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800">
+        <Link to="/admin/packages" className="inline-flex items-center gap-1 text-ivory/70 hover:text-ivory">
           <Icon name="chevronLeft" size={16} /> Packages
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">{pkg ? `Edit ${pkg.name}` : 'New package'}</h1>
+        <h1 className="font-display text-3xl leading-tight text-ivory sm:text-4xl">{pkg ? `Edit ${pkg.name}` : 'New package'}</h1>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${form.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
         >
           {form.is_active ? 'Active' : 'Inactive'}
         </span>
       </div>
-      <p className="mt-1 text-sm text-slate-500">Every package is available for every function — tag functions to show it first for them.</p>
+      <p className="mt-1.5 text-sm text-ivory/75">Every package is available for every function — tag functions to show it first for them.</p>
 
       {formError && (
         <div className="mt-5">
@@ -339,15 +338,6 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
             <div className="mt-6 border-t border-slate-100 pt-5">
               <StepTitle n={2} title="Shown to guests" hint="What the guest sees on the package card." />
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <TextField
-                  label="Display price"
-                  prefix="₹"
-                  inputMode="decimal"
-                  value={form.display_price}
-                  onChange={set('display_price')}
-                  error={errors.display_price}
-                  hint="Optional. Shown on the package card."
-                />
                 <TextField
                   label="Video link"
                   type="url"
@@ -488,7 +478,7 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
                 <div className="space-y-2 px-3 py-3">
                   <p className="line-clamp-2 min-h-8 text-xs text-ivory/65">{form.description.trim() || 'A short line guests will see.'}</p>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="num font-semibold text-brand-300">{displayPrice !== null ? formatINR(displayPrice) : 'Price not shown'}</span>
+                    <span />
                     {form.video_url.trim() && (
                       <span className="flex items-center gap-1 text-brand-300">
                         <Icon name="present" size={12} /> Video
@@ -547,14 +537,11 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
       </div>
 
       {/* Sticky summary */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgb(15_23_42/0.06)] backdrop-blur lg:left-64">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgb(15_23_42/0.06)] backdrop-blur lg:left-72">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="text-sm text-slate-600" aria-live="polite">
             <span className="font-semibold text-slate-900">{selected.size}</span> {selected.size === 1 ? 'element' : 'elements'} ·
             Elements total <span className="num font-semibold text-brand-700">{formatINR(total)}</span>
-            {displayPrice !== null && (
-              <> · Display price <span className="num font-semibold text-slate-900">{formatINR(displayPrice)}</span></>
-            )}
           </p>
           <div className="flex gap-2">
             <Link to="/admin/packages" className="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">

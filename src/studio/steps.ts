@@ -8,7 +8,7 @@ export const STUDIO_NEW_QUOTE = `${STUDIO_ROOT}/new`;
 export const STUDIO_STEPS = [
   { key: 'guest', label: 'Guest & Event', hint: 'Who the celebration is for, and when' },
   { key: 'package', label: 'Package', hint: 'Pick one or more packages' },
-  { key: 'customise', label: 'Customise', hint: 'Choose elements, quantities and charges' },
+  { key: 'customise', label: 'Customise', hint: 'Choose elements and quantities' },
   { key: 'quote', label: 'Quotation', hint: 'Review, save and download' },
 ] as const;
 

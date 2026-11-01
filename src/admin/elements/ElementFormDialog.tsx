@@ -137,14 +137,15 @@ export function ElementFormDialog({ element, onClose }: Props) {
       <form id="element-form" onSubmit={onSubmit} noValidate className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
         {/* Left: photo + rate history */}
         <aside className="space-y-4">
-          <div>
+          {/* Phones: small photo beside its buttons; from md up a large square above them. */}
+          <div className="flex items-center gap-4 md:block">
             <input ref={fileRef} type="file" accept={IMAGE_TYPES.join(',')} className="hidden" onChange={pickFile} />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={busy}
               aria-label={preview || imagePath ? 'Change photo' : 'Choose photo'}
-              className="group relative block aspect-square w-full overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50 transition-colors duration-150 hover:border-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              className="group relative block h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-dashed md:aspect-square md:h-auto md:w-full border-slate-300 bg-slate-50 transition-colors duration-150 hover:border-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
             >
               {preview ? (
                 <img src={preview} alt="" className="h-full w-full object-cover" />
@@ -152,8 +153,8 @@ export function ElementFormDialog({ element, onClose }: Props) {
                 <ImageThumb bucket="element-images" path={imagePath} alt="" fill aspect="aspect-square" className="h-full" />
               ) : (
                 <span className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
-                  <Icon name="image" size={32} />
-                  <span className="text-xs font-medium">Click to add a photo</span>
+                  <Icon name="image" size={28} />
+                  <span className="hidden text-xs font-medium md:inline">Click to add a photo</span>
                 </span>
               )}
               {(preview || imagePath) && (
@@ -162,7 +163,8 @@ export function ElementFormDialog({ element, onClose }: Props) {
                 </span>
               )}
             </button>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap gap-2 md:mt-2">
               <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy} className="flex-1 py-2">
                 <Icon name="upload" size={16} />
                 {preview || imagePath ? 'Replace image' : 'Add image'}
@@ -174,6 +176,7 @@ export function ElementFormDialog({ element, onClose }: Props) {
               )}
             </div>
             <p className="mt-1.5 text-xs text-slate-500">Optional. JPG, PNG or WebP, up to 2 MB.</p>
+            </div>
           </div>
 
           {element && (

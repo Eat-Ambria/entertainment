@@ -99,9 +99,8 @@ describe('PackagesPage', () => {
   it('shows package cards with tier, count and price', async () => {
     renderApp('/admin/packages');
     expect(await screen.findByText('Royal Package')).toBeInTheDocument();
-    expect(screen.getByText('₹2,50,000.00')).toBeInTheDocument();
+    expect(screen.queryByText('₹2,50,000.00')).not.toBeInTheDocument(); // display price is no longer shown
     expect(screen.getAllByText('4 elements', { selector: 'p' })).toHaveLength(2);
-    expect(screen.getByText('Not set')).toBeInTheDocument(); // no display price
     expect(within(screen.getByRole('list', { name: 'Functions for Royal Package' })).getByText('Wedding')).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Functions for Classic Package' })).getByText('Wedding')).toBeInTheDocument();
     expect(api.list).toHaveBeenLastCalledWith({ search: '', status: 'active', tierId: null, page: 1, pageSize: 25 });

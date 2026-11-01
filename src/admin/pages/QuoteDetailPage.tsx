@@ -89,7 +89,7 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/admin/quotes" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
+      <Link to="/admin/quotes" className="inline-flex items-center gap-1 text-sm text-ivory/75 hover:text-ivory">
         <Icon name="chevronLeft" size={16} /> Quote Ledger
       </Link>
 

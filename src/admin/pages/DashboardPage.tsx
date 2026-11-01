@@ -1,12 +1,14 @@
 /**
- * My Workspace dashboard:
- *  - a dark-gold welcome banner (greeting, date, business) with "New Quote" and "Open Guest Studio";
- *  - real KPIs from the Quote Ledger (quotes this month, drafts, confirmed) — counts only, no
- *    placeholder numbers; "—" while loading or if the ledger can't be read;
- *  - confirmed business for events this month (value, profit, margin — from the P&L totals);
+ * My Workspace dashboard (warm cream theme; the stage photo behind the greeting comes from
+ * AdminLayout):
+ *  - greeting ("Good Morning, Vikash"), today's date, New Quote and Open Guest Studio;
+ *  - KPI cards from the Quote Ledger — quotes this month (vs last month), drafts to follow up,
+ *    confirmed quotes (+ this month) — and confirmed revenue for this month's events (P&L);
  *  - the quote pipeline (draft / confirmed / cancelled) as one bar;
- *  - the next five events (days to go) and the five most recent quotations;
- *  - compact tiles into every internal area. Sections rise in one after another.
+ *  - the next events and the most recent quotations.
+ * Counts only from real data; "—" while loading or if something can't be read.
+ * Motion: greeting rises, the four cards pop up one after another, the revenue card has a slow
+ * light sweep, the pipeline bar grows and list rows slide in — transform/opacity only.
  */
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -15,148 +17,237 @@ import { useAuth } from '@/auth/AuthContext';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatINR } from '@/lib/money';
 import { formatDate, todayIst } from '@/lib/date';
-import { asset } from '@/lib/asset';
-import { ADMIN_ROOT, NAV_ITEMS } from '../nav';
+import { ADMIN_ROOT } from '../nav';
 import { STUDIO_NEW_QUOTE, STUDIO_ROOT } from '@/studio/steps';
 import { useLedger } from '../quotes/useQuoteLedger';
-import { StatusBadge } from '../quotes/StatusBadge';
 import type { LedgerParams, QuoteStatus } from '../quotes/quoteLedgerApi';
 import { pnlApi } from '../pnl/pnlApi';
+import { HERO_BTN } from '../heroButton';
 import { useUpcomingEvents } from '../dashboard/dashboardApi';
 
 const ALL: LedgerParams = { search: '', status: null, functionName: null, packageId: null, from: null, to: null, page: 1, pageSize: 1 };
 const DAY_MS = 86_400_000;
 const LEDGER = `${ADMIN_ROOT}/quotes`;
+const IST = 'Asia/Kolkata';
+
+const CARD = 'rounded-2xl border border-white/80 bg-white/60 shadow-[0_10px_30px_-14px_rgb(110_80_40/0.28)] backdrop-blur-md';
 
 function greeting(now = new Date()): string {
-  const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(now));
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: IST }).format(now));
+  return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
 }
 
-const daysUntil = (date: string, today: string) => Math.round((Date.parse(date) - Date.parse(today)) / DAY_MS);
+/** ₹2.4L / ₹1.2Cr / ₹45K — short Indian notation for the revenue card. */
+function compactINR(v: number): string {
+  const a = Math.abs(v);
+  if (a >= 1e7) return `₹${(v / 1e7).toFixed(1).replace(/\.0$/, '')}Cr`;
+  if (a >= 1e5) return `₹${(v / 1e5).toFixed(1).replace(/\.0$/, '')}L`;
+  if (a >= 1e3) return `₹${(v / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+  return formatINR(v);
+}
 
-/** Number of quotes matching the filter (one-row query, the count comes back with it). */
+const monthBounds = (y: number, m: number) => {
+  const start = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+  const end = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10);
+  return { start, end };
+};
+
+/** ALL-CAPS names (as LMS often stores them) shown in title case; mixed-case names are left alone. */
+const displayName = (n: string) =>
+  n === n.toUpperCase() ? n.toLowerCase().replace(/(^|[\s/(-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase()) : n;
+
 function useQuoteCount(extra: Partial<LedgerParams>) {
-  const q = useLedger({ ...ALL, ...extra });
-  return q.data?.total ?? null;
+  return useLedger({ ...ALL, ...extra }).data?.total ?? null;
 }
 
-/** Section that rises in after `order` steps (CSS animate-rise, transform + opacity only). */
 function Rise({ order, label, className = '', children }: { order: number; label?: string; className?: string; children: ReactNode }) {
-  const style: CSSProperties = { animationDelay: `${order * 70}ms` };
+  const style: CSSProperties = { animationDelay: `${300 + order * 120}ms` };
   return (
-    <section aria-label={label} className={`animate-rise ${className}`} style={style}>
+    <section aria-label={label} className={`dash-rise ${className}`} style={style}>
       {children}
     </section>
   );
 }
 
+const PILL: Record<QuoteStatus, string> = {
+  draft: 'bg-[#f8e8cf] text-[#9a6b2f] ring-transparent',
+  sent: 'bg-sky-50 text-sky-700 ring-sky-200/70',
+  confirmed: 'bg-[#dcefd6] text-[#3c7536] ring-transparent',
+  cancelled: 'bg-rose-50 text-rose-700 ring-rose-200/70',
+};
+const PILL_LABEL: Record<QuoteStatus, string> = { draft: 'Draft', sent: 'Sent', confirmed: 'Confirmed', cancelled: 'Cancelled' };
+
+function StatusPill({ status }: { status: QuoteStatus }) {
+  return <span className={`shrink-0 rounded-full px-3.5 py-1 text-xs font-medium ring-1 ${PILL[status]}`}>{PILL_LABEL[status]}</span>;
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth();
   const today = todayIst();
-  const monthStart = `${today.slice(0, 8)}01`;
-  const monthEnd = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0)).toISOString().slice(0, 10);
-  const monthName = new Intl.DateTimeFormat('en-IN', { month: 'long', timeZone: 'Asia/Kolkata' }).format(new Date(`${today}T12:00:00Z`));
+  const y = Number(today.slice(0, 4));
+  const m = Number(today.slice(5, 7)) - 1;
+  const month = monthBounds(y, m);
+  const lastMonth = monthBounds(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
+  const noon = new Date(`${today}T12:00:00Z`);
+  const weekday = new Intl.DateTimeFormat('en-IN', { weekday: 'long', timeZone: IST }).format(noon);
+  const monthName = new Intl.DateTimeFormat('en-IN', { month: 'long', timeZone: IST }).format(noon);
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
-  const business = profile?.business_name?.trim() || 'Ambria Entertainment';
 
-  const thisMonth = useQuoteCount({ from: monthStart });
+  const thisMonth = useQuoteCount({ from: month.start });
+  const prevMonth = useQuoteCount({ from: lastMonth.start, to: lastMonth.end });
   const drafts = useQuoteCount({ status: 'draft' as QuoteStatus });
   const confirmed = useQuoteCount({ status: 'confirmed' as QuoteStatus });
+  const confirmedThisMonth = useQuoteCount({ status: 'confirmed' as QuoteStatus, from: month.start });
   const cancelled = useQuoteCount({ status: 'cancelled' as QuoteStatus });
-  const recent = useLedger({ ...ALL, pageSize: 5 });
+  const recent = useLedger({ ...ALL, pageSize: 4 });
   const upcoming = useUpcomingEvents(today);
-  // Confirmed business for events this month (event date), from the P&L totals.
-  const month = useQuery({
-    queryKey: ['pnl', 'totals', 'dashboard', monthStart],
-    queryFn: () => pnlApi.totals({ status: 'confirmed', from: monthStart, to: monthEnd, functionName: null, packageId: null }),
+  const revenue = useQuery({
+    queryKey: ['pnl', 'totals', 'dashboard', month.start],
+    queryFn: () => pnlApi.totals({ status: 'confirmed', from: month.start, to: month.end, functionName: null, packageId: null }),
     retry: false,
   });
 
+  const trend = thisMonth !== null && prevMonth ? Math.round(((thisMonth - prevMonth) / prevMonth) * 100) : null;
   const pipeline = [
-    { label: 'Draft', value: drafts, cls: 'bg-amber-400' },
-    { label: 'Confirmed', value: confirmed, cls: 'bg-emerald-500' },
-    { label: 'Cancelled', value: cancelled, cls: 'bg-rose-500' },
+    { label: 'Draft', value: drafts, cls: 'bg-linear-to-r from-[#c9a35d] to-[#d9b877]', dot: 'bg-[#c9a35d]' },
+    { label: 'Confirmed', value: confirmed, cls: 'bg-[#6fae6a]', dot: 'bg-[#6fae6a]' },
+    { label: 'Cancelled', value: cancelled, cls: 'bg-[#dd6b72]', dot: 'bg-[#dd6b72]' },
   ];
   const pipelineTotal = pipeline.reduce((n, p) => n + (p.value ?? 0), 0);
-  const tiles = NAV_ITEMS.filter((n) => n.to !== ADMIN_ROOT);
 
   return (
     <div className="space-y-6">
-      {/* Welcome banner */}
-      <section className="relative isolate animate-rise overflow-hidden rounded-3xl bg-stage-950 px-6 py-7 text-ivory shadow-xl shadow-stage-950/20 sm:px-8 sm:py-9">
-        <img src={asset('concert-bg.webp')} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-35" />
-        <span className="absolute inset-0 -z-10 bg-linear-to-r from-stage-950 via-stage-950/85 to-stage-950/30" />
-        <span className="absolute -top-24 -right-24 -z-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgb(226_183_102/0.25),transparent_65%)]" />
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-brand-300">
-              {formatDate(today)} · {business}
-            </p>
-            <h1 className="mt-3 font-display text-3xl leading-tight text-ivory sm:text-4xl">Dashboard</h1>
-            <p className="mt-2 text-base text-ivory/70">
-              {greeting()}
-              {firstName ? `, ${firstName}` : ''} — manage the catalogue, track rates and review quotations.
+      {/* Greeting over the stage photo */}
+      <section className="dash-hero flex flex-col gap-5 pt-1 pb-3 text-ivory lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="sr-only">Dashboard</h1>
+          <p className="font-display text-3xl leading-tight sm:text-[2.6rem]">
+            {greeting()}
+            {firstName && (
+              <>
+                , <span className="gold-shimmer">{firstName}</span>
+              </>
+            )}
+          </p>
+          <p className="mt-1.5 text-sm tracking-wide text-ivory/80 sm:text-base">Your entertainment business at a glance.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
+            <Icon name="calendar" size={22} className="text-brand-300" />
+            <p className="leading-tight">
+              <span className="block text-sm font-medium">{formatDate(today)}</span>
+              <span className="block text-xs text-ivory/70">{weekday}</span>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to={STUDIO_NEW_QUOTE}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-400 px-5 py-2.5 text-sm font-semibold text-stage-950 shadow-lg shadow-black/30 transition-colors duration-150 hover:bg-brand-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
-            >
-              <Icon name="plus" size={18} />
-              New Quote
-            </Link>
-            <Link
-              to={STUDIO_ROOT}
-              className="inline-flex items-center gap-2 rounded-full border border-ivory/35 px-5 py-2.5 text-sm font-medium text-ivory transition-colors duration-150 hover:border-ivory/70 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"
-            >
-              <Icon name="present" size={18} />
-              Open Guest Studio
-            </Link>
-          </div>
+          <span className="hidden h-9 w-px bg-ivory/30 sm:block" aria-hidden="true" />
+          <Link
+            to={STUDIO_NEW_QUOTE}
+            className={HERO_BTN}
+          >
+            <Icon name="plus" size={18} />
+            New Quote
+          </Link>
+          <Link
+            to={STUDIO_ROOT}
+            className="inline-flex items-center gap-2 rounded-xl border border-ivory/70 px-5 py-2.5 text-sm font-medium text-ivory transition-colors duration-150 hover:bg-white/10"
+          >
+            <Icon name="present" size={18} />
+            Open Guest Studio
+          </Link>
         </div>
       </section>
 
       {/* KPIs */}
-      <Rise order={1} label="Quotation numbers" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icon="receipt" label="Quotes this month" value={thisMonth} to={LEDGER} />
-        <Kpi icon="edit" label="Drafts to follow up" value={drafts} to={LEDGER} />
-        <Kpi icon="check" label="Confirmed quotes" value={confirmed} to={LEDGER} />
+      <section aria-label="Quotation numbers" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Kpi
+          order={0}
+          icon="fileText"
+          tone="warm"
+          label="Quotes this month"
+          value={thisMonth}
+          to={LEDGER}
+          foot={
+            trend !== null ? (
+              <span className={trend >= 0 ? 'text-emerald-700' : 'text-rose-600'}>
+                <Icon name={trend >= 0 ? 'arrowUp' : 'arrowDown'} size={16} className="mr-1 inline align-[-3px]" />
+                {trend >= 0 ? '+' : ''}
+                {trend}% from last month
+              </span>
+            ) : (
+              <span className="text-slate-500">This month</span>
+            )
+          }
+        />
+        <Kpi
+          order={1}
+          icon="edit"
+          tone="amber"
+          label="Drafts to follow up"
+          value={drafts}
+          to={`${LEDGER}?status=draft`}
+          foot={
+            <span className="text-brand-700">
+              <Icon name="clock" size={16} className="mr-1 inline align-[-3px]" />
+              Pending action
+            </span>
+          }
+        />
+        <Kpi
+          order={2}
+          icon="check"
+          tone="green"
+          label="Confirmed quotes"
+          value={confirmed}
+          to={`${LEDGER}?status=confirmed`}
+          foot={
+            <span className="text-emerald-700">
+              <Icon name="arrowUp" size={16} className="mr-1 inline align-[-3px]" />
+              {confirmedThisMonth ?? '—'} this month
+            </span>
+          }
+        />
         <Link
           to={`${ADMIN_ROOT}/reports/pnl`}
-          className="group relative overflow-hidden rounded-2xl bg-stage-950 p-5 text-ivory shadow-sm transition duration-200 ease-premium hover:-translate-y-0.5 hover:shadow-lg"
+          style={{ animationDelay: '510ms' }}
+          className="dash-pop group relative overflow-hidden rounded-2xl bg-linear-to-br from-[#3d2b17] via-[#26190d] to-[#160f08] p-4 text-ivory sm:p-5 shadow-[0_12px_30px_-10px_rgb(60_40_15/0.6)] ring-1 ring-brand-400/30 transition duration-200 ease-premium hover:-translate-y-0.5"
         >
-          <span className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgb(226_183_102/0.3),transparent_65%)]" />
-          <div className="relative flex items-center justify-between">
-            <p className="text-sm font-medium text-ivory/70">Confirmed · {monthName} events</p>
-            <span className="rounded-lg bg-brand-400/15 p-2 text-brand-300">
-              <Icon name="chart" size={18} />
-            </span>
+          <span aria-hidden="true" className="card-sheen" />
+          {/* Glowing gold waves (decorative) */}
+          <span className="pointer-events-none absolute -right-10 -bottom-12 h-40 w-56 rounded-full bg-[radial-gradient(closest-side,rgb(226_170_90/0.35),transparent)]" />
+          <svg aria-hidden="true" viewBox="0 0 240 140" className="pointer-events-none absolute -right-2 -bottom-2 h-32 w-56 text-[#e8b866] drop-shadow-[0_0_6px_rgb(232_184_102/0.6)]" fill="none">
+            {Array.from({ length: 9 }, (_, i) => (
+              <path
+                key={i}
+                d={`M0 ${136 - i * 2} C 70 ${132 - i * 3}, 120 ${70 + i * 5}, 250 ${12 + i * 7}`}
+                stroke="currentColor"
+                strokeWidth="0.8"
+                strokeOpacity={0.18 + i * 0.07}
+              />
+            ))}
+          </svg>
+          <div className="relative flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-b from-[#7a5a2c] to-[#4a3418] font-display text-lg text-[#f3d49a] ring-1 ring-[#d9ab5f]/70">₹</span>
+            <p className="text-sm text-ivory/90">Confirmed revenue</p>
           </div>
-          <p className="num relative mt-3 font-display text-3xl text-brand-200">{month.data ? formatINR(month.data.all_selling) : '—'}</p>
-          <p className="relative mt-1 text-xs text-ivory/55">
-            {month.data
-              ? `Profit ${formatINR(month.data.profit)}${month.data.margin_pct !== null ? ` · ${month.data.margin_pct.toFixed(1)}% margin` : ''}`
-              : 'Value of confirmed events this month'}
-          </p>
+          <p className="num relative mt-3 truncate bg-linear-to-b from-[#f6dca2] to-[#d4a65a] bg-clip-text font-display text-3xl font-semibold text-transparent sm:text-[2.35rem]">{revenue.data ? compactINR(revenue.data.all_selling) : '—'}</p>
+          <p className="relative mt-1.5 truncate text-xs text-ivory/75">From confirmed {monthName} events</p>
         </Link>
-      </Rise>
+      </section>
 
       {/* Pipeline */}
-      <Rise order={2} label="Quote pipeline" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <Rise order={2} label="Quote pipeline" className={`${CARD} p-5 sm:p-6`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-slate-900">Quote pipeline</h2>
-          <ul className="flex flex-wrap gap-4 text-sm">
+          <h2 className="font-display text-xl font-semibold text-slate-900">Quote pipeline</h2>
+          <ul className="flex flex-wrap gap-5 text-sm">
             {pipeline.map((p) => (
               <li key={p.label} className="flex items-center gap-2 text-slate-600">
-                <span className={`h-2.5 w-2.5 rounded-full ${p.cls}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${p.dot}`} />
                 {p.label} <span className="num font-semibold text-slate-900">{p.value ?? '—'}</span>
               </li>
             ))}
           </ul>
         </div>
-        <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-4 flex h-4 overflow-hidden rounded-full bg-cream-200/70">
           {pipelineTotal > 0 &&
             pipeline.map((p) => (
               <span
@@ -171,41 +262,32 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Upcoming events */}
-        <Rise order={3} label="Upcoming events" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <h2 className="font-semibold text-slate-900">Upcoming events</h2>
-            <span className="text-xs text-slate-400">Draft &amp; confirmed</span>
-          </div>
+        <Rise order={3} label="Upcoming events" className={`${CARD} p-5 sm:p-6`}>
+          <ListHeader icon="calendar" title="Upcoming events" to={LEDGER} />
           {upcoming.isLoading ? (
             <SkeletonRows />
           ) : !upcoming.data || upcoming.data.length === 0 ? (
-            <Empty icon="present" text={upcoming.isError ? "Couldn't load upcoming events." : 'No upcoming events yet.'} />
+            <Empty icon="calendar" text={upcoming.isError ? "Couldn't load upcoming events." : 'No upcoming events yet.'} />
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {upcoming.data.map((e) => {
-                const d = daysUntil(e.event_date, today);
+            <ul className="divide-y divide-cream-200">
+              {upcoming.data.map((e, i) => {
                 const [day, mon] = formatDate(e.event_date).split(' ');
+                const d = Math.round((Date.parse(e.event_date) - Date.parse(today)) / DAY_MS);
                 return (
-                  <li key={e.id}>
-                    <Link to={`${LEDGER}/${e.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-slate-50">
-                      <span className="flex w-12 shrink-0 flex-col items-center rounded-xl border border-brand-200 bg-brand-50 py-1 text-brand-800">
-                        <span className="text-[10px] font-semibold uppercase">{mon}</span>
-                        <span className="num font-display text-lg leading-none">{day}</span>
+                  <li key={e.id} className="dash-slide" style={{ animationDelay: `${650 + i * 110}ms` }}>
+                    <Link to={`${LEDGER}/${e.id}`} className="flex items-center gap-4 py-3 transition-colors duration-150 hover:bg-white/50">
+                      <span className="flex w-13 shrink-0 flex-col items-center rounded-lg bg-[#f6e9d6] py-1.5 text-slate-700">
+                        <span className="text-[10px] font-medium uppercase">{mon}</span>
+                        <span className="num font-display text-xl leading-none text-slate-900">{day}</span>
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium text-slate-900">{e.guest_name}</span>
+                        <span className="block truncate font-display text-base font-semibold text-slate-900">{displayName(e.guest_name)}</span>
                         <span className="block truncate text-xs text-slate-500">
-                          {e.function_name} · <span className="num">{e.quote_no}</span>
+                          {[e.function_name, e.venue_name].filter(Boolean).join(' · ')}
+                          {d >= 0 && d <= 7 ? ` · ${d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `in ${d} days`}` : ''}
                         </span>
                       </span>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          d <= 7 ? 'bg-rose-50 text-rose-700' : d <= 30 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `In ${d} days`}
-                      </span>
-                      <StatusBadge status={e.status} />
+                      <StatusPill status={e.status} />
                     </Link>
                   </li>
                 );
@@ -215,34 +297,29 @@ export default function DashboardPage() {
         </Rise>
 
         {/* Recent quotations */}
-        <Rise order={4} label="Recent quotations" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <h2 className="font-semibold text-slate-900">Recent quotations</h2>
-            <Link to={LEDGER} className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:text-brand-800">
-              View all <Icon name="chevronRight" size={16} />
-            </Link>
-          </div>
+        <Rise order={4} label="Recent quotations" className={`${CARD} p-5 sm:p-6`}>
+          <ListHeader icon="fileText" title="Recent quotations" to={LEDGER} />
           {recent.isLoading ? (
             <SkeletonRows />
           ) : !recent.data || recent.data.rows.length === 0 ? (
-            <Empty icon="receipt" text={recent.isError ? "Couldn't load recent quotations." : 'No quotations yet — start one from the Guest Studio.'} />
+            <Empty icon="fileText" text={recent.isError ? "Couldn't load recent quotations." : 'No quotations yet — start one from the Guest Studio.'} />
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {recent.data.rows.map((r) => (
-                <li key={r.id}>
-                  <Link to={`${LEDGER}/${r.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-slate-50">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 font-semibold text-brand-700">
+            <ul className="divide-y divide-cream-200">
+              {recent.data.rows.map((r, i) => (
+                <li key={r.id} className="dash-slide" style={{ animationDelay: `${700 + i * 110}ms` }}>
+                  <Link to={`${LEDGER}/${r.id}`} className="flex items-center gap-4 py-3 transition-colors duration-150 hover:bg-white/50">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f6e9d6] font-display text-base text-brand-700">
                       {r.guest_name.trim().charAt(0).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-slate-900">{r.guest_name}</span>
+                      <span className="block truncate font-display text-base font-semibold text-slate-900">{displayName(r.guest_name)}</span>
                       <span className="block truncate text-xs text-slate-500">
-                        <span className="num">{r.quote_no}</span> · {r.function_name}
+                        {r.function_name}
                         {r.event_date ? ` · ${formatDate(r.event_date)}` : ''}
                       </span>
                     </span>
-                    <span className="num hidden font-semibold text-slate-900 sm:block">{formatINR(r.final_total)}</span>
-                    <StatusBadge status={r.status} />
+                    <span className="num hidden text-base font-semibold text-slate-900 sm:block">{formatINR(r.final_total)}</span>
+                    <StatusPill status={r.status} />
                   </Link>
                 </li>
               ))}
@@ -250,57 +327,57 @@ export default function DashboardPage() {
           )}
         </Rise>
       </div>
-
-      {/* Quick access */}
-      <Rise order={5} label="Quick access" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="font-semibold text-slate-900">Quick access</h2>
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {tiles.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="group flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition duration-200 ease-premium hover:-translate-y-0.5 hover:border-brand-200 hover:bg-brand-50/40 hover:shadow-sm"
-            >
-              <span className="rounded-lg bg-brand-50 p-2 text-brand-600 transition-colors duration-200 group-hover:bg-brand-100">
-                <Icon name={item.icon} size={18} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-slate-900">{item.label}</span>
-                <span className="block truncate text-xs text-slate-500">{item.description}</span>
-              </span>
-              <Icon name="chevronRight" size={16} className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
-            </Link>
-          ))}
-        </div>
-      </Rise>
     </div>
   );
 }
 
-function Kpi({ icon, label, value, to }: { icon: IconName; label: string; value: number | null; to: string }) {
+const TONE = {
+  warm: { card: 'from-[#fcf5ea]/90 to-white/60', icon: 'bg-[#f3e2c8] text-[#6b4a22]' },
+  amber: { card: 'from-[#fcf3e6]/90 to-white/60', icon: 'bg-[#f3e2c8] text-[#6b4a22]' },
+  green: { card: 'from-[#eef6ec]/90 to-white/60', icon: 'bg-[#dcecd6] text-[#3f7a3a]' },
+} as const;
+
+function Kpi({ icon, label, value, to, foot, tone, order }: { icon: IconName; label: string; value: number | null; to: string; foot: ReactNode; tone: keyof typeof TONE; order: number }) {
+  const t = TONE[tone];
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 ease-premium hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
+      style={{ animationDelay: `${150 + order * 120}ms` }}
+      className={`dash-pop group relative overflow-hidden rounded-2xl border border-white/80 bg-linear-to-br p-4 shadow-[0_10px_30px_-14px_rgb(110_80_40/0.28)] backdrop-blur-md transition duration-200 ease-premium hover:-translate-y-0.5 sm:p-5 ${t.card}`}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <span className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors duration-200 group-hover:bg-brand-100 group-hover:text-brand-700">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-300 ease-premium group-hover:scale-110 group-hover:-rotate-6 ${t.icon}`}>
           <Icon name={icon} size={18} />
         </span>
+        <p className="text-sm text-slate-700">{label}</p>
       </div>
-      <p className="num mt-3 font-display text-4xl text-slate-900">{value ?? '—'}</p>
+      <p className="num mt-3 font-display text-3xl font-semibold text-slate-900 sm:text-[2.35rem]">{value ?? '—'}</p>
+      <p className="mt-1.5 truncate text-xs">{foot}</p>
     </Link>
+  );
+}
+
+function ListHeader({ icon, title, to }: { icon: IconName; title: string; to: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-cream-200 pb-4">
+      <h2 className="flex items-center gap-3 font-display text-xl font-semibold text-slate-900">
+        <Icon name={icon} size={22} className="text-slate-600" />
+        {title}
+      </h2>
+      <Link to={to} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-brand-700">
+        View all <Icon name="arrowRight" size={16} />
+      </Link>
+    </div>
   );
 }
 
 function SkeletonRows() {
   return (
-    <ul className="divide-y divide-slate-100" aria-hidden="true">
+    <ul className="divide-y divide-cream-200" aria-hidden="true">
       {[0, 1, 2].map((i) => (
-        <li key={i} className="flex items-center gap-4 px-5 py-4">
-          <span className="h-9 w-9 animate-pulse rounded-full bg-slate-100" />
-          <span className="h-4 flex-1 animate-pulse rounded bg-slate-100" />
+        <li key={i} className="flex items-center gap-4 py-4">
+          <span className="h-11 w-11 animate-pulse rounded-full bg-cream-200" />
+          <span className="h-4 flex-1 animate-pulse rounded bg-cream-200" />
         </li>
       ))}
     </ul>
@@ -310,7 +387,7 @@ function SkeletonRows() {
 function Empty({ icon, text }: { icon: IconName; text: string }) {
   return (
     <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-      <span className="rounded-full bg-brand-50 p-3 text-brand-600">
+      <span className="rounded-full bg-cream-200/70 p-3 text-brand-700">
         <Icon name={icon} size={22} />
       </span>
       <p className="text-sm text-slate-500">{text}</p>

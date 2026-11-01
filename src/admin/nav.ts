@@ -38,13 +38,6 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Curated packages with default elements.',
   },
   {
-    to: `${ADMIN_ROOT}/charges`,
-    label: 'Additional charges',
-    icon: 'receipt',
-    section: 'catalogue',
-    description: 'Transportation and labour rates added to new quotes.',
-  },
-  {
     to: `${ADMIN_ROOT}/rate-history`,
     label: 'Rate History',
     icon: 'history',

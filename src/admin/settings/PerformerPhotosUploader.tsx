@@ -56,14 +56,10 @@ export function PerformerPhotosUploader() {
   }
 
   return (
-    <div className="space-y-3 border-t border-slate-100 pt-5">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-900">Performer photos</p>
-          <p className="text-xs text-slate-500">
-            Guests and artists performing at your venue — shown one after another in the featured frame on the Guest Studio welcome screen. Up to{' '}
-            {MAX_PERFORMER_PHOTOS} photos, JPG, PNG or WebP, 2 MB each. Wide (landscape) shots look best.
-          </p>
         </div>
         <input
           ref={fileRef}

@@ -10,7 +10,6 @@ import { useEffect } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchPackageLines, useActivePackages, type StudioPackage, type StudioPackageLine } from '@/data/studioCatalog';
-import { chargeRatesApi } from '@/data/chargeRates';
 import { linesFromPackage } from '../lines';
 import { useEventOptions } from '@/data/eventOptions';
 import { Button } from '@/components/ui/Button';
@@ -38,14 +37,11 @@ export function PackageStep({ onBack, onDone }: Props) {
   const [draft, updateDraft] = useQuoteDraft(session?.user.id ?? 'anon');
   const qc = useQueryClient();
 
-  // Warm up Customise while packages are being picked: lines, element images and charge rates.
+  // Warm up Customise while packages are being picked: lines and element images.
   const pickedIds = draft.packages.map((b) => b.id).join(',');
   useEffect(() => {
     if (pickedIds) prefetchPackageLines(qc, pickedIds.split(','));
   }, [pickedIds, qc]);
-  useEffect(() => {
-    void qc.prefetchQuery({ queryKey: ['charge-rates'], queryFn: () => chargeRatesApi.list(), staleTime: 5 * 60_000 }).catch(() => undefined);
-  }, [qc]);
 
   // Seed lines that are already loaded before leaving, so Customise shows them on its first frame.
   function goNext() {

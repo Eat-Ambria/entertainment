@@ -29,7 +29,6 @@ const DashboardPage = lazyPage(() => import('@/admin/pages/DashboardPage'));
 const ElementsPage = lazyPage(() => import('@/admin/pages/ElementsPage'));
 const PackagesPage = lazyPage(() => import('@/admin/pages/PackagesPage'));
 const PackageEditorPage = lazyPage(() => import('@/admin/pages/PackageEditorPage'));
-const ChargesPage = lazyPage(() => import('@/admin/pages/ChargesPage'));
 const QuoteLedgerPage = lazyPage(() => import('@/admin/pages/QuoteLedgerPage'));
 const QuoteDetailPage = lazyPage(() => import('@/admin/pages/QuoteDetailPage'));
 const RateHistoryPage = lazyPage(() => import('@/admin/pages/RateHistoryPage'));
@@ -67,7 +66,6 @@ export const routes: RouteObject[] = [
           { path: 'packages', element: <PackagesPage /> },
           { path: 'packages/new', element: <PackageEditorPage /> },
           { path: 'packages/:id', element: <PackageEditorPage /> },
-          { path: 'charges', element: <ChargesPage /> },
           { path: 'quotes', element: <QuoteLedgerPage /> },
           { path: 'quotes/:id', element: <QuoteDetailPage /> },
           { path: 'rate-history', element: <RateHistoryPage /> },

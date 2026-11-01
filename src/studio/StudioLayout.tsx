@@ -39,7 +39,7 @@ export function StudioLayout() {
             <span className="header-spot header-spot-left -left-6" aria-hidden="true" />
             <span className="header-spot header-spot-right -right-6" aria-hidden="true" />
             <div className="relative">
-              <BrandMark size="lg" tone="dark" />
+              <BrandMark size="lg" tone="dark" subtitle={null} />
             </div>
           </div>
           <div className="flex items-center gap-2">

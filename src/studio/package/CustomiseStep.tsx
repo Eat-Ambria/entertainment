@@ -3,9 +3,7 @@
  * One section per package (the same element can appear in two packages, separately).
  * Tick/untick, change quantity, and (staff only, behind "Adjust rates") change the rate.
  * "+ Add element" adds any active element to a section for this quote only.
- * Additional charges are edited here too, so the whole quote is adjusted on one screen.
- * Transportation / Labour are pre-added from the master charge rates (Labour follows the
- * number of packages); "Adjust rates" also unlocks their amounts.
+ * There are no additional charges (transport, labour…): the quote total is the elements total.
  * Each package's subtotal and the elements total update instantly. Nothing here changes
  * the master element or the package defaults, and no internal hints are shown.
  * Dark stage panels like the Guest and Package steps; the price summary is as wide as the
@@ -21,18 +19,14 @@ import { ImageThumb } from '@/components/ui/ImageThumb';
 import { Spinner } from '@/components/ui/Spinner';
 import { FormAlert } from '@/components/ui/FormAlert';
 import { formatINR } from '@/lib/money';
-import { useQuoteDraft, type DraftCharge, type DraftLine, type DraftPackageBlock } from '../quoteDraft';
+import { useQuoteDraft, type DraftLine, type DraftPackageBlock } from '../quoteDraft';
 import { linesChanged, linesFromPackage, refreshLines, summariseBlocks, type LineErrors, type LinesSummary } from '../lines';
 import { AddElementDialog } from './AddElementDialog';
 import { StepHeading } from '../StepHeading';
 import { GuestSummary } from '../GuestSummary';
 import { SIDE_STICKY } from '../steps';
-import { ChargesEditor } from '../quote/ChargesEditor';
 import { AnimatePresence, m } from 'motion/react';
 import { quick, smooth } from '@/lib/motion';
-import { summariseCharges } from '../quote/quoteTotals';
-import { autoChargeAmount, ruleForVenue, syncAutoCharges } from '../quote/autoCharges';
-import { useChargeRates } from '@/data/chargeRates';
 import { roundMoney } from '@/lib/money';
 import { parseMoney } from '@/lib/numbers';
 import type { StudioElement } from '@/data/studioCatalog';
@@ -351,44 +345,10 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
   );
 
   const summary = useMemo(() => summariseBlocks(draft.packages), [draft.packages]);
-  const charges = useMemo(() => summariseCharges(draft.charges), [draft.charges]);
-  const setCharges = useCallback(
-    (fn: (c: DraftCharge[]) => DraftCharge[]) => updateDraft((d) => ({ ...d, charges: fn(d.charges) })),
-    [updateDraft],
-  );
-
-  // Pre-add Transportation / Labour from the master rates and keep Labour in step with the
-  // package count, using the quote venue's rates (external store, not React state).
-  // Rates not set up yet → nothing is added.
-  const allRates = useChargeRates().data;
-  const venueId = draft.guest?.venueId;
-  const rates = useMemo(() => allRates?.map((r) => ruleForVenue(r, venueId)), [allRates, venueId]);
-  const packageCount = draft.packages.length;
-  const removedRules = draft.removedRules;
-  useEffect(() => {
-    if (!rates || draft.autoChargesOff) return;
-    if (!syncAutoCharges(draft.charges, rates, packageCount, removedRules ?? [])) return;
-    updateDraft((d) => ({ ...d, charges: syncAutoCharges(d.charges, rates, d.packages.length, d.removedRules ?? []) ?? d.charges }));
-  }, [rates, draft.autoChargesOff, draft.charges, packageCount, removedRules, updateDraft]);
-
-  const ruleLabels = useMemo(() => Object.fromEntries((rates ?? []).map((r) => [r.code, r.label])), [rates]);
-  const onRuleRemoved = useCallback(
-    (code: string) => updateDraft((d) => ({ ...d, removedRules: [...new Set([...(d.removedRules ?? []), code])] })),
-    [updateDraft],
-  );
-  const onRuleRestore = useCallback(
-    (code: string) => {
-      const rule = rates?.find((r) => r.code === code);
-      if (!rule || draft.autoChargesOff || autoChargeAmount(rule, packageCount) <= 0) return false;
-      updateDraft((d) => ({ ...d, removedRules: (d.removedRules ?? []).filter((c) => c !== code) }));
-      return true;
-    },
-    [rates, draft.autoChargesOff, packageCount, updateDraft],
-  );
   const allLoaded = draft.packages.every((b) => b.lines !== null);
 
   function next() {
-    if (!summary.valid || charges.errors.size > 0) {
+    if (!summary.valid) {
       setShowErrors(true);
       setBlocked((n) => n + 1);
       return;
@@ -402,7 +362,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
   const many = draft.packages.length > 1;
   const emptyNames = draft.packages.filter((b) => summary.emptyPackages.includes(b.id)).map((b) => b.name);
 
-  const finalTotal = roundMoney(summary.total + charges.total);
+  const finalTotal = roundMoney(summary.total);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -416,7 +376,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
             <span>
               {editRates ? 'Adjusting rates for this quote only.' : 'Tick the elements the guest wants and set quantities.'}
               <span className="block text-xs text-ivory/45">
-                {draft.packages.length} {draft.packages.length === 1 ? 'package' : 'packages'} · {summary.includedCount} elements included · additional charges below
+                {draft.packages.length} {draft.packages.length === 1 ? 'package' : 'packages'} · {summary.includedCount} elements included
               </span>
             </span>
           </p>
@@ -426,14 +386,12 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
           </Button>
         </div>
 
-        {showErrors && (!summary.valid || charges.errors.size > 0) && (
+        {showErrors && !summary.valid && (
           <div ref={errorRef} className="scroll-mt-44">
           <FormAlert dark>
             {emptyNames.length > 0
               ? `Include at least one element in ${emptyNames.join(' and ')}, or go back and remove ${emptyNames.length > 1 ? 'those packages' : 'that package'}.`
-              : !summary.valid
-                ? 'Fix the highlighted quantities or rates.'
-                : 'Fix the highlighted charges.'}
+              : 'Fix the highlighted quantities or rates.'}
           </FormAlert>
           </div>
         )}
@@ -461,19 +419,9 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
           />
         )}
 
-        <ChargesEditor
-          charges={draft.charges}
-          errors={charges.errors}
-          showErrors={showErrors}
-          editRates={editRates}
-          onChange={setCharges}
-          ruleLabels={ruleLabels}
-          onRuleRemoved={onRuleRemoved}
-          onRuleRestore={onRuleRestore}
-        />
       </div>
 
-      {/* Price summary — stays in view while the elements and charges are changed. */}
+      {/* Price summary — stays in view while the elements are changed. */}
       <div className={`space-y-4 ${SIDE_STICKY}`}>
       <GuestSummary />
       <aside aria-label="Price summary" className="relative overflow-hidden rounded-2xl border border-brand-300/25 bg-stage-900/80 text-ivory shadow-2xl shadow-black/50">
@@ -507,12 +455,6 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
               <dt className="text-ivory/55">{summary.includedCount} elements</dt>
               <dd className="num text-ivory" aria-label="Elements total">
                 {formatINR(summary.total)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ivory/55">Additional charges</dt>
-              <dd className="num text-ivory" aria-label="Charges total">
-                {formatINR(charges.total)}
               </dd>
             </div>
             <div className="flex items-baseline justify-between border-t border-brand-300/30 pt-3" aria-live="polite">

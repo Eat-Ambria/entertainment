@@ -1,9 +1,8 @@
 /**
- * Settings: branding (logo, shown to guests), business profile (name, contact line, LMS user
+ * Settings: branding (performer photos, shown to guests), business profile (name, contact line, LMS user
  * id) and account (sign-in phone, password). One card per section.
- * Charge rates live under Catalogue → Additional charges.
  */
-import { useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import type { AuthState } from '@/auth/types';
@@ -11,10 +10,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { FormAlert } from '@/components/ui/FormAlert';
-import { BrandMark } from '@/components/ui/BrandMark';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatPhone } from '@/lib/phone';
-import { LOGO_TYPES, uploadImage, userFilePath, validateImage } from '@/lib/storage';
 import { validateProfile, type ProfileForm } from './settingsValidation';
 import { PerformerPhotosUploader } from '../settings/PerformerPhotosUploader';
 
@@ -110,58 +107,13 @@ function ProfileFormSection({ profile, updateProfile }: Pick<AuthState, 'profile
 }
 
 export default function SettingsPage() {
-  const { profile, session, updateProfile } = useAuth();
-  const [logoBusy, setLogoBusy] = useState(false);
-  const [logoError, setLogoError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  async function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !session) return;
-    const invalid = validateImage(file, LOGO_TYPES);
-    setLogoError(invalid);
-    if (invalid) return;
-    setLogoBusy(true);
-    try {
-      const path = await uploadImage('brand', userFilePath(session.user.id, 'brand', file), file);
-      await updateProfile({ logo_path: path });
-    } catch {
-      setLogoError('Upload failed. Please try again.');
-    } finally {
-      setLogoBusy(false);
-    }
-  }
-
+  const { profile, updateProfile } = useAuth();
   return (
     <>
       <PageHeader title="Settings" description="Your business details and account." />
       <div className="max-w-4xl space-y-6">
-        <Section icon="image" title="Branding" description="Your logo, performer photos and background photo, shown to guests in the Guest Studio and on quotations.">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
-              <BrandMark size="lg" subtitle="Preview" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2">
-                <input ref={fileRef} type="file" accept={LOGO_TYPES.join(',')} className="hidden" onChange={onLogo} />
-                <Button variant="secondary" loading={logoBusy} onClick={() => fileRef.current?.click()}>
-                  <Icon name="upload" size={16} />
-                  {profile?.logo_path ? 'Replace logo' : 'Upload logo'}
-                </Button>
-                {profile?.logo_path && (
-                  <Button variant="ghost" disabled={logoBusy} onClick={() => void updateProfile({ logo_path: null })}>
-                    Remove
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-slate-500">JPG, PNG, WebP or SVG, up to 2 MB. A square logo looks best.</p>
-              {logoError && <p className="text-sm text-rose-600">{logoError}</p>}
-            </div>
-          </div>
-          <div className="mt-5">
-            <PerformerPhotosUploader />
-          </div>
+        <Section icon="image" title="Branding" description="Performer photos shown to guests on the Guest Studio landing page.">
+          <PerformerPhotosUploader />
         </Section>
 
         <Section icon="user" title="Business profile" description="Your name, business details and LMS connection.">

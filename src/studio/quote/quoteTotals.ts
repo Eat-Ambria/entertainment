@@ -1,6 +1,6 @@
 /**
  * Quotation maths + save payload.
- *   Final Quote Total = Σ package subtotals (included elements) + Additional Charges Total
+ *   Final Quote Total = Σ package subtotals (included elements). Additional charges were removed.
  * The server recomputes everything on save; these numbers are what the guest sees meanwhile.
  */
 import { parseMoney, parseQty } from '@/lib/numbers';
@@ -40,14 +40,13 @@ export function summariseCharges(charges: readonly DraftCharge[]) {
 
 export function summariseQuote(draft: QuoteDraft): QuoteSummary {
   const blocks = summariseBlocks(draft.packages);
-  const charges = summariseCharges(draft.charges);
   return {
     elementsSubtotal: blocks.total,
-    chargesTotal: charges.total,
-    finalTotal: roundMoney(blocks.total + charges.total),
-    chargeErrors: charges.errors,
+    chargesTotal: 0,
+    finalTotal: roundMoney(blocks.total),
+    chargeErrors: new Map(),
     linesValid: blocks.valid,
-    valid: blocks.valid && charges.errors.size === 0 && draft.guest !== null,
+    valid: blocks.valid && draft.guest !== null,
   };
 }
 
@@ -98,7 +97,7 @@ export function buildSavePayload(draft: QuoteDraft): SaveQuotePayload | null {
         included: l.included,
       })),
     })),
-    charges: draft.charges.map((c) => ({ description: c.description.trim(), amount: parseMoney(c.amount)! })),
+    charges: [], // additional charges were removed: new / re-saved quotes carry none
     notes: null,
   };
 }

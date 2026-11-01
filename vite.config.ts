@@ -44,7 +44,7 @@ const pwa = VitePWA({
     globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
     // The PDF library (~1.6 MB) loads only when someone downloads a quote — don't precache it.
     // Source images (background PNGs, the logo banner, the icon source) are not used by the app; keep them out of the offline cache.
-    globIgnores: ['**/pdfmake-*.js', '**/vfs_fonts-*.js', '**/background.png', '**/background1.png', '**/logo new.png', '**/app-icon.png', '**/demo.png'],
+    globIgnores: ['**/pdfmake-*.js', '**/vfs_fonts-*.js', '**/background.png', '**/background1.png', '**/logo new.png', '**/app-icon.png', '**/demo.png', '**/dashboard image.png', '**/sidebar image.png'],
     navigateFallback: 'index.html',
     cleanupOutdatedCaches: true,
     // Fonts and the PDF library are runtime-cached. Supabase (data, auth, signed image URLs) always goes to the network.

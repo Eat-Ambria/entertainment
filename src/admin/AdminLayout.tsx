@@ -1,11 +1,14 @@
 /**
  * My Workspace shell (internal): sidebar + top bar + routed page content.
- * Lazy pages load inside Suspense.
+ * Lazy pages load inside Suspense. Every page uses the dashboard look: the user's artwork
+ * (public/dashboard image.png → public/dashboard-bg.webp, dark stage top, cream below) behind a
+ * light page title, and frosted cream cards (`.ws-theme` in index.css).
  */
 import { Suspense, useRef, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { navItemFor } from './nav';
+import { ADMIN_ROOT, navItemFor } from './nav';
+import { asset } from '@/lib/asset';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { UserMenu } from '@/components/ui/UserMenu';
@@ -26,10 +29,15 @@ export function AdminLayout() {
   return (
     <MotionProvider>
     {/* Pinned to the viewport: only <main> scrolls, so the page itself can never scroll or shift. */}
-    <div ref={rootRef} className="fixed inset-0 flex overflow-hidden bg-slate-50">
+    <div ref={rootRef} className="ws-theme fixed inset-0 flex overflow-hidden bg-cream-100">
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <div className="relative isolate flex min-w-0 flex-1 flex-col">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <img src={asset('dashboard-bg.webp')} alt="" className="h-full w-full object-cover object-top" />
+        </div>
+        <header
+          className="relative z-20 flex h-16 shrink-0 items-center gap-3 border-b border-white/40 bg-linear-to-r from-cream-50 via-cream-50/85 to-cream-50/0 px-4 sm:px-6 lg:px-8"
+        >
           <button
             type="button"
             className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden"
@@ -38,9 +46,20 @@ export function AdminLayout() {
           >
             <Icon name="menu" />
           </button>
-          <p className="truncate text-sm font-medium text-slate-500">{current?.label ?? ''}</p>
+          <p className="flex min-w-0 items-center gap-2.5 truncate text-base font-medium text-slate-800">
+            {current && <Icon name={current.icon} size={20} className="shrink-0 text-slate-600" />}
+            {current?.label ?? ''}
+          </p>
           <div className="flex-1" />
-          <UserMenu />
+          <Link
+            to={`${ADMIN_ROOT}/quotes?status=draft`}
+            aria-label="Drafts to follow up"
+            title="Drafts to follow up"
+            className="rounded-full p-2 text-ivory transition-colors duration-150 hover:bg-white/10"
+          >
+            <Icon name="bell" size={20} />
+          </Link>
+          <UserMenu tone="dark" />
         </header>
         <main className="flex-1 overflow-y-auto">
           {/* Re-keyed per page so each screen fades in (same motion system as the Guest Studio). */}
@@ -49,7 +68,7 @@ export function AdminLayout() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={quick}
-            className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+            className="mx-auto w-full max-w-[110rem] px-4 py-6 sm:px-6 sm:py-8"
           >
             <Suspense fallback={<Spinner full />}>
               <Outlet />

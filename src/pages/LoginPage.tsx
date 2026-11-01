@@ -69,21 +69,38 @@ export default function LoginPage() {
           <img src={asset('concert-bg.webp')} alt="" className="absolute inset-0 h-full w-full object-cover brightness-75 saturate-110" />
           <span className="absolute inset-0 bg-linear-to-t from-stage-950 via-stage-950/40 to-stage-950/10" />
           <span className="absolute inset-0 bg-linear-to-r from-stage-950/60 to-transparent" />
-          <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
+          {/* Soft dark wash behind the centred headline so it stays readable on the bright stage. */}
+          <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_55%,rgb(10_8_6/0.55),transparent_60%)]" />
+          <div className="relative flex h-full flex-col p-10 xl:p-14">
             <BrandMark size="lg" tone="dark" subtitle={null} />
-            <div className="max-w-xl animate-rise">
-              <h2 className="font-display text-5xl leading-[1.05] text-ivory xl:text-6xl">
-                Every celebration,
-                {/* Padding keeps the italic descenders (y, p) inside the text-clipped gradient. */}
-                <span className="gold-shimmer -mb-3 block pr-3 pb-3 italic">perfectly priced.</span>
+            {/* Vertically centred so the panel has no empty middle. */}
+            <div className="my-auto max-w-xl py-10">
+              <h2 className="animate-rise font-display text-5xl leading-[1.05] text-ivory xl:text-6xl">
+                Where Entertainment
+                {/* Padding keeps the italic descenders inside the text-clipped gradient. */}
+                <span className="gold-shimmer -mb-3 block pr-3 pb-3 italic">Becomes an Experience.</span>
               </h2>
-              <p className="mt-5 max-w-md text-base text-ivory/70">
-                Build packages, present them to your guests and share clear quotations — all in one place.
+              <span className="mt-6 block h-px w-24 origin-left animate-[grow_900ms_var(--ease-premium)_300ms_both] bg-linear-to-r from-brand-300 to-transparent" />
+              <p className="mt-6 max-w-lg animate-rise text-base leading-relaxed text-ivory/75 [animation-delay:150ms]">
+                Unforgettable performances, exceptional artists and incredible musical experiences — everything you need to turn your celebration into a show-stopping affair.
               </p>
-              <ul className="mt-8 flex flex-wrap gap-2 text-xs text-ivory/80">
-                {['Live bands & DJs', 'Guest-ready quotations', 'PDF in one tap'].map((t) => (
-                  <li key={t} className="rounded-full border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur-sm">
-                    {t}
+              <ul className="mt-8 grid max-w-xl gap-2.5 sm:grid-cols-3">
+                {(
+                  [
+                    ['mic', 'Live Bands & Vocalists'],
+                    ['sparkles', 'Celebrity & Guest Artists'],
+                    ['headphones', 'DJs & Signature Experiences'],
+                  ] as const
+                ).map(([icon, label], i) => (
+                  <li
+                    key={label}
+                    className="flex animate-rise items-center gap-2.5 rounded-xl border border-white/12 bg-black/35 px-3 py-2.5 text-xs font-medium text-ivory/85 backdrop-blur-sm"
+                    style={{ animationDelay: `${250 + i * 90}ms` }}
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-400/15 text-brand-300 ring-1 ring-brand-300/30">
+                      <Icon name={icon} size={14} />
+                    </span>
+                    {label}
                   </li>
                 ))}
               </ul>

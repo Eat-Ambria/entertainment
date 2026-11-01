@@ -52,18 +52,17 @@ describe('summariseCharges', () => {
 });
 
 describe('summariseQuote', () => {
-  it('Final = included elements subtotal + additional charges', () => {
+  it('Final = included elements subtotal (additional charges were removed and are ignored)', () => {
     const d = draft({ charges: [{ key: 'a', description: 'Transportation', amount: '5000' }] });
     d.packages[0]!.lines![1]!.included = false;
-    expect(summariseQuote(d)).toMatchObject({ elementsSubtotal: 25000, chargesTotal: 5000, finalTotal: 30000, valid: true });
+    expect(summariseQuote(d)).toMatchObject({ elementsSubtotal: 25000, chargesTotal: 0, finalTotal: 25000, valid: true });
   });
 
   it('works with no charges', () => {
     expect(summariseQuote(draft())).toMatchObject({ chargesTotal: 0, finalTotal: 55000, valid: true });
   });
 
-  it('is invalid with a bad charge or bad line', () => {
-    expect(summariseQuote(draft({ charges: [{ key: 'a', description: '', amount: '1' }] })).valid).toBe(false);
+  it('is invalid with a bad line', () => {
     const d = draft();
     d.packages[0]!.lines![0]!.qty = '0';
     expect(summariseQuote(d).valid).toBe(false);
@@ -98,7 +97,7 @@ describe('buildSavePayload', () => {
           ],
         },
       ],
-      charges: [{ description: 'Labour', amount: 2500 }],
+      charges: [],
       notes: null,
     });
   });

@@ -104,40 +104,25 @@ describe('Quotation step', () => {
     expect(total()).toBe('₹55,000.00');
   });
 
-  it('edits additional charges on the Customise step, next to the elements, with a final total', async () => {
-    renderApp('/studio/new?step=customise');
-    await userEvent.click(await screen.findByRole('button', { name: '+ Transportation' }));
-    await userEvent.type(screen.getByLabelText('Charge 1 amount'), '5,000');
-    expect(total()).toBe('₹60,000.00');
-
-    await userEvent.click(screen.getByRole('button', { name: /Add charge/ }));
-    await userEvent.type(screen.getByLabelText('Charge 2 description'), 'Labour');
-    await userEvent.type(screen.getByLabelText('Charge 2 amount'), '2500');
-    expect(total()).toBe('₹62,500.00');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Remove charge 1' }));
-    expect(total()).toBe('₹57,500.00');
-  });
-
-  it('will not continue past Customise with an invalid charge', async () => {
-    const { router } = renderApp('/studio/new?step=customise');
-    await userEvent.click(await screen.findByRole('button', { name: /Add charge/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Continue to quotation/ }));
-    expect(screen.getByText('Describe the charge')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Fix the highlighted charges.');
-    expect(router.state.location.search).toBe('?step=customise');
-  });
-
-  it('the Quotation step shows charges but no longer edits them', async () => {
+  it('has no additional charges: leftover draft charges are not shown, totalled or saved', async () => {
     setQuoteDraft(testProfile.id, (d) => ({
       ...d,
       charges: [{ key: 'k1', description: 'Transportation', amount: '5000' }],
     }));
     renderApp('/studio/new?step=quote');
     const doc = await screen.findByRole('article', { name: 'Quotation' });
-    expect(within(doc).getByText('Transportation')).toBeInTheDocument();
+    expect(within(doc).queryByText('Transportation')).not.toBeInTheDocument();
+    expect(total()).toBe('₹55,000.00');
+    await userEvent.click(screen.getByRole('button', { name: 'Save quote' }));
+    await waitFor(() => expect(quotesApi.save).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(quotesApi.save).mock.calls[0]![0].charges).toEqual([]);
+  });
+
+  it('shows no charges editor on the Customise step', async () => {
+    renderApp('/studio/new?step=customise');
+    await screen.findByRole('button', { name: /Continue to quotation/ });
     expect(screen.queryByRole('button', { name: /Add charge/ })).not.toBeInTheDocument();
-    expect(total()).toBe('₹60,000.00');
+    expect(screen.queryByRole('region', { name: 'Additional charges' })).not.toBeInTheDocument();
   });
 
   it('celebrates only a confirmed save — created first, then updated — and never a failed one', async () => {
@@ -159,10 +144,6 @@ describe('Quotation step', () => {
   });
 
   it('saves, shows the quote number, and re-saves the same draft', async () => {
-    setQuoteDraft(testProfile.id, (d) => ({
-      ...d,
-      charges: [{ key: 'k1', description: 'Labour', amount: '2,500' }],
-    }));
     renderApp('/studio/new?step=quote');
     await userEvent.click(await screen.findByRole('button', { name: 'Save quote' }));
 
@@ -170,7 +151,7 @@ describe('Quotation step', () => {
     const payload = vi.mocked(quotesApi.save).mock.calls[0]![0];
     expect(payload).toMatchObject({
       quote_id: null,
-      charges: [{ description: 'Labour', amount: 2500 }],
+      charges: [],
       guest: {
         source: 'lms_contract',
         source_ref: 'C-1042',
@@ -267,11 +248,11 @@ describe('Quotation step', () => {
     expect(screen.queryByText(/Additional charges —|Optional — transport/)).not.toBeInTheDocument();
   });
 
-  it('has an obvious way back to edit elements, rates and charges', async () => {
+  it('has an obvious way back to edit elements and rates', async () => {
     const { router } = renderApp('/studio/new?step=quote');
     await userEvent.click(
       await screen.findByRole('button', {
-        name: /Edit elements, rates & charges/,
+        name: /Edit elements & rates/,
       }),
     );
     await waitFor(() => expect(router.state.location.search).toBe('?step=customise'));

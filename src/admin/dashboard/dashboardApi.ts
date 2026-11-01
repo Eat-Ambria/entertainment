@@ -11,6 +11,7 @@ export interface UpcomingEvent {
   quote_no: string;
   guest_name: string;
   function_name: string;
+  venue_name: string | null;
   event_date: string;
   status: QuoteStatus;
   final_total: number;
@@ -19,7 +20,7 @@ export interface UpcomingEvent {
 async function upcoming(fromDate: string, limit = 5): Promise<UpcomingEvent[]> {
   const { data, error } = await requireSupabase()
     .from('quotes')
-    .select('id, quote_no, guest_name, function_name, event_date, status, final_total')
+    .select('id, quote_no, guest_name, function_name, venue_name, event_date, status, final_total')
     .gte('event_date', fromDate)
     .in('status', ['draft', 'confirmed'])
     .order('event_date', { ascending: true })

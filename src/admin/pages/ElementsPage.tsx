@@ -24,7 +24,11 @@ import { dbErrorMessage, deleteErrorMessage } from '@/lib/dbErrors';
 import type { Element, ElementSort, ElementStatus } from '../elements/elementsApi';
 import { ElementFormDialog } from '../elements/ElementFormDialog';
 import { TabButton } from '@/components/ui/TabButton';
+
+/** Table columns shown from sm (640px) up; phones see the element + actions only. */
+const HIDE = ' hidden sm:table-cell';
 import { useDeleteElement, useElementList, useSetElementActive } from '../elements/useElements';
+import { HERO_BTN } from '../heroButton';
 
 const SORT_OPTIONS: { value: ElementSort; label: string }[] = [
   { value: 'name', label: 'Name (A–Z)' },
@@ -96,26 +100,26 @@ export default function ElementsPage() {
     <>
       <PageHeader
         title="Elements"
-        description="Your master list of elements: cost rate × multiplier = the rate guests see."
         actions={
-          <Button onClick={() => setEditing('new')}>
+          <button type="button" onClick={() => setEditing('new')} className={HERO_BTN}>
             <Icon name="plus" size={18} />
             Add element
-          </Button>
+          </button>
         }
       />
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div role="tablist" aria-label="Status" className="inline-flex rounded-lg bg-slate-100 p-1 text-sm">
+          {/* Phones: the two tabs share the width; search + sort sit on one line. */}
+          <div role="tablist" aria-label="Status" className="grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-sm sm:inline-flex">
             {(['active', 'archived'] as const).map((s) => (
               <TabButton key={s} selected={status === s} onClick={() => setParam('status', s === 'active' ? null : s)} className="capitalize">
                 {s}
               </TabButton>
             ))}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <label className="relative flex-1 sm:w-72">
+          <div className="flex gap-2">
+            <label className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
               <span className="sr-only">Search elements</span>
               <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -126,12 +130,12 @@ export default function ElementsPage() {
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </label>
-            <label>
+            <label className="w-32 shrink-0 sm:w-auto">
               <span className="sr-only">Sort by</span>
               <select
                 value={sort}
                 onChange={(e) => setParam('sort', e.target.value === 'name' ? null : e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm sm:px-3"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -174,16 +178,17 @@ export default function ElementsPage() {
         ) : (
           <>
             <div className={`overflow-x-auto ${list.isPlaceholderData ? 'opacity-60' : ''}`}>
-              <table className="w-full min-w-160 text-sm">
+              {/* Phones: only the element (with its rates under the name) and the actions; other columns from sm up. */}
+              <table className="w-full text-sm sm:min-w-160">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <tr className="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                     <th className="px-4 py-3">Element</th>
-                    <th className="px-4 py-3 text-right">Cost rate</th>
-                    <th className="px-4 py-3 text-right">Multiplier</th>
-                    <th className="px-4 py-3 text-right">Guest rate</th>
-                    <th className="px-4 py-3 text-right">Default qty</th>
-                    <th className="px-4 py-3">Remarks</th>
-                    <th className="px-4 py-3">Updated</th>
+                    <th className={`px-4 py-3 text-right${HIDE}`}>Cost rate</th>
+                    <th className={`px-4 py-3 text-right${HIDE}`}>Multiplier</th>
+                    <th className={`px-4 py-3 text-right${HIDE}`}>Guest rate</th>
+                    <th className={`px-4 py-3 text-right${HIDE}`}>Default qty</th>
+                    <th className={`px-4 py-3${HIDE}`}>Remarks</th>
+                    <th className={`px-4 py-3${HIDE}`}>Updated</th>
                     <th className="px-4 py-3">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -191,21 +196,26 @@ export default function ElementsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {rows.map((el) => (
-                    <tr key={el.id} className="hover:bg-slate-50">
+                    <tr key={el.id} className="group transition-colors duration-150 hover:bg-brand-50/40">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <ImageThumb bucket="element-images" path={el.image_path} alt="" />
+                          <ImageThumb bucket="element-images" path={el.image_path} alt="" size={44} className="ring-1 ring-slate-200" />
                           <div className="min-w-0">
                             <p className="truncate font-medium text-slate-900">{el.name}</p>
-                            {el.unit && <p className="text-xs text-slate-500">per {el.unit}</p>}
+                            {el.unit && <p className="hidden text-xs text-slate-500 sm:block">per {el.unit}</p>}
+                            {/* Phones: guest rate (with unit) and cost × multiplier under the name. */}
+                            <p className="num mt-0.5 text-sm font-semibold text-slate-900 sm:hidden">{`Guest ${formatINR(el.selling_rate)}${el.unit ? ` / ${el.unit}` : ''}`}</p>
+                            <p className="num text-xs text-slate-400 sm:hidden">{`Cost ${formatINR(el.default_rate)} × ${formatQty(el.multiplier)}`}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="num px-4 py-3 text-right text-slate-600">{formatINR(el.default_rate)}</td>
-                      <td className="num px-4 py-3 text-right text-slate-600">× {formatQty(el.multiplier)}</td>
-                      <td className="num px-4 py-3 text-right font-semibold text-slate-900">{formatINR(el.selling_rate)}</td>
-                      <td className="num px-4 py-3 text-right text-slate-600">{formatQty(el.default_qty, el.unit)}</td>
-                      <td className="max-w-56 px-4 py-3 text-slate-600">
+                      <td className={`num px-4 py-3 text-right text-slate-600${HIDE}`}>{formatINR(el.default_rate)}</td>
+                      <td className={`px-4 py-3 text-right${HIDE}`}>
+                        <span className={`num inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${el.multiplier === 1 ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>× {formatQty(el.multiplier)}</span>
+                      </td>
+                      <td className={`num px-4 py-3 text-right font-semibold text-brand-700${HIDE}`}>{formatINR(el.selling_rate)}</td>
+                      <td className={`num px-4 py-3 text-right text-slate-600${HIDE}`}>{formatQty(el.default_qty, el.unit)}</td>
+                      <td className={`max-w-56 px-4 py-3 text-slate-600${HIDE}`}>
                         {el.remarks ? (
                           <p className="line-clamp-2" title={el.remarks}>
                             {el.remarks}
@@ -214,14 +224,14 @@ export default function ElementsPage() {
                           <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{formatDate(el.updated_at)}</td>
+                      <td className={`px-4 py-3 text-xs whitespace-nowrap text-slate-400${HIDE}`}>{formatDate(el.updated_at)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-0.5 sm:gap-1">
                           {el.is_active && (
                             <button
                               type="button"
                               onClick={() => setEditing(el)}
-                              className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 sm:p-2"
                               aria-label={`Edit ${el.name}`}
                             >
                               <Icon name="edit" size={16} />
@@ -230,7 +240,7 @@ export default function ElementsPage() {
                           <button
                             type="button"
                             onClick={() => (el.is_active ? setConfirming(el) : void toggleActive(el))}
-                            className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 sm:p-2"
                             aria-label={el.is_active ? `Archive ${el.name}` : `Restore ${el.name}`}
                           >
                             <Icon name={el.is_active ? 'archive' : 'restore'} size={16} />
@@ -238,7 +248,7 @@ export default function ElementsPage() {
                           <button
                             type="button"
                             onClick={() => setDeleting(el)}
-                            className="rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 sm:p-2"
                             aria-label={`Delete ${el.name}`}
                           >
                             <Icon name="trash" size={16} />

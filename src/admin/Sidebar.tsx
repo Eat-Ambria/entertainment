@@ -1,12 +1,14 @@
 /**
- * My Workspace sidebar, grouped by section, with a shortcut into the Guest Studio.
+ * My Workspace sidebar, grouped by section (dividers between groups), the business name stacked
+ * beside the emblem, a gold-framed active item, on the user's dark gold-wave artwork.
  * Fixed on desktop, slide-in drawer on mobile/tablet.
  */
-import { Link, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { ADMIN_ROOT, NAV_ITEMS, NAV_SECTIONS } from './nav';
 import { Icon } from '@/components/ui/Icon';
-import { BrandMark } from '@/components/ui/BrandMark';
-import { STUDIO_ROOT } from '@/studio/steps';
+import { useAuth } from '@/auth/AuthContext';
+import { asset } from '@/lib/asset';
+import { BRAND } from '@/lib/brand';
 
 interface SidebarProps {
   open: boolean;
@@ -14,18 +16,33 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const { profile } = useAuth();
+  const name = profile?.business_name?.trim() || `${BRAND.name} ${BRAND.product}`;
+  const [first, ...rest] = name.split(' ');
   return (
     <>
       {open && (
         <div className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" onClick={onClose} aria-hidden="true" />
       )}
       <aside
-        className={`stage-bg fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 text-ivory transition-transform duration-200 ease-premium lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col overflow-hidden border-r border-white/5 bg-[#0e0c0a] text-ivory transition-transform duration-200 ease-premium lg:static lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-16 items-center justify-between px-5">
-          <BrandMark subtitle="My Workspace" tone="dark" />
+        {/* The user's sidebar artwork (public/sidebar-bg.webp), animated: the gold waves sway slowly. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="sidebar-sway absolute inset-0">
+            <img src={asset('sidebar-bg.webp')} alt="" className="h-full w-full object-cover object-bottom" />
+          </div>
+        </div>
+        <div className="relative flex items-center justify-between px-6 pt-6 pb-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src={asset('logo-mark.webp')} alt="" className="h-14 w-14 shrink-0 rounded-full bg-black object-cover ring-1 ring-brand-300/40 drop-shadow-[0_2px_12px_rgb(226_183_102/0.35)]" />
+            <p className="min-w-0 font-display text-2xl leading-[1.1] text-ivory">
+              {first}
+              {rest.length > 0 && <span className="block truncate">{rest.join(' ')}</span>}
+            </p>
+          </div>
           <button
             type="button"
             className="rounded-md p-1 text-ivory/60 hover:bg-white/10 lg:hidden"
@@ -35,13 +52,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <Icon name="close" />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main">
+        <nav className="relative flex-1 overflow-y-auto px-4 pb-6" aria-label="Main">
           {NAV_SECTIONS.map((section) => (
-            <div key={section.key} className="mt-5 first:mt-2">
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-ivory/35">
+            <div key={section.key} className="border-t border-white/10 pt-5 pb-4 first:border-t-0 first:pt-3">
+              <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ivory/45">
                 {section.label}
               </p>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {NAV_ITEMS.filter((n) => n.section === section.key).map((item) => (
                   <NavLink
                     key={item.to}
@@ -49,8 +66,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     end={item.to === ADMIN_ROOT}
                     onClick={onClose}
                     className={({ isActive }) =>
-                      `group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ease-premium ${
-                        isActive ? 'bg-brand-500/20 text-ivory shadow-[inset_3px_0_0_var(--color-brand-400)]' : 'text-ivory/65 hover:text-ivory'
+                      `group relative flex items-center gap-3.5 overflow-hidden rounded-xl px-3.5 py-2.5 text-[15px] transition-colors duration-200 ease-premium ${
+                        isActive
+                          ? 'bg-linear-to-r from-brand-500/35 to-brand-500/10 font-medium text-ivory ring-1 ring-brand-400/50 shadow-[0_6px_20px_-8px_rgb(226_183_102/0.45)]'
+                          : 'text-ivory/75 hover:text-ivory'
                       }`
                     }
                   >
@@ -83,15 +102,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/10 p-3">
-          <Link
-            to={STUDIO_ROOT}
-            className="group flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-brand-500 to-brand-300 px-3 py-2.5 text-sm font-medium text-ivory shadow-lg shadow-brand-950/50 transition duration-200 ease-premium hover:-translate-y-0.5 hover:shadow-brand-500/30 hover:brightness-110"
-          >
-            <Icon name="present" size={18} />
-            Open Guest Studio
-          </Link>
-        </div>
       </aside>
     </>
   );

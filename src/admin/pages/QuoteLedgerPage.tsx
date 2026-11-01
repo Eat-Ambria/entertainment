@@ -1,9 +1,9 @@
 /**
  * Quote Ledger: every saved quotation, newest first. Search (quote no / guest / phone),
  * filters (status, function, package, created date range) and server-side pagination,
- * all kept in the URL.
+ * all kept in the URL. On phones the filters fold behind a "Filters" button.
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { useEventOptions } from '@/data/eventOptions';
@@ -22,6 +22,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 import { STUDIO_NEW_QUOTE } from '@/studio/steps';
 import { STATUS_LABEL, type QuoteStatus } from '../quotes/quoteLedgerApi';
 import { StatusBadge } from '../quotes/StatusBadge';
+import { HERO_BTN } from '../heroButton';
 import { useLedger, useLedgerPackages } from '../quotes/useQuoteLedger';
 
 const STATUSES = (Object.keys(STATUS_LABEL) as QuoteStatus[]).filter((s) => s !== 'sent');
@@ -67,15 +68,16 @@ export default function QuoteLedgerPage() {
   const list = useLedger({ search: urlSearch, status, functionName, packageId, from, to, page, pageSize });
   const rows = list.data?.rows ?? [];
   const filtered = Boolean(urlSearch || status || functionName || packageId || from || to);
+  const activeFilters = [status, functionName, packageId, from, to].filter(Boolean).length;
+  const [showFilters, setShowFilters] = useState(false);
   const createdBy = profile?.full_name || 'You';
 
   return (
     <>
       <PageHeader
         title="Quote Ledger"
-        description="All your saved quotations. Saved quotes keep their original details even if elements or packages change later."
         actions={
-          <Link to={STUDIO_NEW_QUOTE} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-700">
+          <Link to={STUDIO_NEW_QUOTE} className={HERO_BTN}>
             <Icon name="plus" size={18} /> New quote
           </Link>
         }
@@ -95,6 +97,21 @@ export default function QuoteLedgerPage() {
                 className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </label>
+            {/* Phones only: filters fold away so the list is visible straight away. */}
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+              aria-controls="ledger-filters"
+              className={`relative shrink-0 rounded-lg border px-3 py-2 text-sm font-medium sm:hidden ${
+                showFilters || activeFilters ? 'border-brand-300 bg-brand-50 text-brand-800' : 'border-slate-300 text-slate-600'
+              }`}
+            >
+              Filters
+              {activeFilters > 0 && (
+                <span className="num ml-1.5 rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white">{activeFilters}</span>
+              )}
+            </button>
             {filtered && (
               <button
                 type="button"
@@ -108,7 +125,7 @@ export default function QuoteLedgerPage() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div id="ledger-filters" className={`${showFilters ? 'grid' : 'hidden'} grid-cols-2 gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-5`}>
             <label className="min-w-0">
               <span className={labelCls}>Status</span>
               <select value={status ?? ''} onChange={(e) => setParam('status', e.target.value || null)} className={selectCls}>
@@ -131,7 +148,7 @@ export default function QuoteLedgerPage() {
                 ))}
               </select>
             </label>
-            <label className="min-w-0">
+            <label className="col-span-2 min-w-0 sm:col-span-1">
               <span className={labelCls}>Package</span>
               <select value={packageId ?? ''} onChange={(e) => setParam('pkg', e.target.value || null)} className={selectCls}>
                 <option value="">All packages</option>
@@ -151,7 +168,7 @@ export default function QuoteLedgerPage() {
               <input type="date" value={to ?? ''} min={from ?? undefined} onChange={(e) => setParam('to', e.target.value || null)} className={selectCls} />
             </label>
           </div>
-          <p className="text-xs text-slate-400">Dates filter by when the quote was created.</p>
+          <p className={`${showFilters ? 'block' : 'hidden'} text-xs text-slate-400 sm:block`}>Dates filter by when the quote was created.</p>
         </div>
 
         {list.isError ? (

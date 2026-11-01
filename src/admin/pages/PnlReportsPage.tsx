@@ -11,7 +11,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEventOptions } from '@/data/eventOptions';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FormAlert } from '@/components/ui/FormAlert';
@@ -29,12 +29,17 @@ const selectCls = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 
 const labelCls = 'mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500';
 const isDate = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
-function Kpi({ label, value, sub, tone = 'text-slate-900' }: { label: string; value: string; sub?: string; tone?: string }) {
+function Kpi({ label, value, sub, icon, tone = 'text-slate-900', accent = false }: { label: string; value: string; sub?: string; icon: IconName; tone?: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className={`num mt-1 text-2xl font-semibold ${tone}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+    <div className={`rounded-2xl border p-4 shadow-sm sm:p-5 ${accent ? 'border-brand-200 bg-linear-to-br from-brand-50 to-white' : 'border-slate-200 bg-white'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">{label}</p>
+        <span className={`rounded-lg p-1.5 ${accent ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'}`} aria-hidden="true">
+          <Icon name={icon} size={16} />
+        </span>
+      </div>
+      <p className={`num mt-2 truncate font-display text-2xl sm:text-3xl ${tone}`}>{value}</p>
+      {sub && <p className="mt-0.5 truncate text-xs text-slate-500">{sub}</p>}
     </div>
   );
 }
@@ -102,6 +107,8 @@ export default function PnlReportsPage() {
     packageId: params.get('pkg'),
   };
   const [open, setOpen] = useState<string | null>(null);
+  const [moreFilters, setMoreFilters] = useState(false);
+  const extraFilters = [filters.functionName, filters.packageId, filters.from, filters.to].filter(Boolean).length;
 
   const setParam = useCallback(
     (key: string, value: string | null) =>
@@ -130,11 +137,11 @@ export default function PnlReportsPage() {
     <>
       <PageHeader
         title="P&L Reports"
-        description="Selling = guest rate × qty. Cost = cost rate × qty (the rate before the multiplier). Costs are locked when a quote is saved."
       />
 
-      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        {/* Phones: Status stays visible; the other filters fold behind "More filters". */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <label className="min-w-0">
             <span className={labelCls}>Status</span>
             <select value={filters.status} onChange={(e) => setParam('status', e.target.value === 'confirmed' ? null : e.target.value)} className={selectCls}>
@@ -145,7 +152,17 @@ export default function PnlReportsPage() {
               ))}
             </select>
           </label>
-          <label className="min-w-0">
+          <div className="flex items-end sm:hidden">
+            <button
+              type="button"
+              onClick={() => setMoreFilters((v) => !v)}
+              aria-expanded={moreFilters}
+              className={`w-full rounded-lg border px-3 py-2 text-sm font-medium ${moreFilters || extraFilters ? 'border-brand-300 bg-brand-50 text-brand-800' : 'border-slate-300 text-slate-600'}`}
+            >
+              More filters{extraFilters ? ` (${extraFilters})` : ''}
+            </button>
+          </div>
+          <label className={`${moreFilters ? 'block' : 'hidden'} min-w-0 sm:block`}>
             <span className={labelCls}>Function</span>
             <select value={filters.functionName ?? ''} onChange={(e) => setParam('fn', e.target.value || null)} className={selectCls}>
               <option value="">All functions</option>
@@ -156,7 +173,7 @@ export default function PnlReportsPage() {
               ))}
             </select>
           </label>
-          <label className="min-w-0">
+          <label className={`${moreFilters ? 'block' : 'hidden'} min-w-0 sm:block`}>
             <span className={labelCls}>Package</span>
             <select value={filters.packageId ?? ''} onChange={(e) => setParam('pkg', e.target.value || null)} className={selectCls}>
               <option value="">All packages</option>
@@ -167,11 +184,11 @@ export default function PnlReportsPage() {
               ))}
             </select>
           </label>
-          <label className="min-w-0">
+          <label className={`${moreFilters ? 'block' : 'hidden'} min-w-0 sm:block`}>
             <span className={labelCls}>Event from</span>
             <input type="date" value={filters.from ?? ''} max={filters.to ?? undefined} onChange={(e) => setParam('from', e.target.value || null)} className={selectCls} />
           </label>
-          <label className="min-w-0">
+          <label className={`${moreFilters ? 'block' : 'hidden'} min-w-0 sm:block`}>
             <span className={labelCls}>Event to</span>
             <input type="date" value={filters.to ?? ''} min={filters.from ?? undefined} onChange={(e) => setParam('to', e.target.value || null)} className={selectCls} />
           </label>
@@ -193,15 +210,18 @@ export default function PnlReportsPage() {
         <Spinner label="Calculating…" />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi label="Selling (elements)" value={formatINR(t.elements_selling)} sub={`${t.complete_quotes} of ${t.quotes} quotes`} />
-            <Kpi label="Cost" value={formatINR(t.elements_cost)} sub="Cost rate × qty" />
-            <Kpi label="Profit" value={formatINR(t.profit)} tone={profitTone(t.profit)} sub="Selling − cost" />
-            <Kpi label="Margin" value={formatPct(t.margin_pct)} tone={profitTone(t.margin_pct)} sub="Profit ÷ selling" />
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            <Kpi icon="receipt" label="Selling (elements)" value={formatINR(t.elements_selling)} sub={`${t.complete_quotes} of ${t.quotes} quotes`} />
+            <Kpi icon="elements" label="Cost" value={formatINR(t.elements_cost)} sub="Cost rate × qty" />
+            <Kpi icon="chart" label="Profit" value={formatINR(t.profit)} tone={profitTone(t.profit)} sub="Selling − cost" accent />
+            <Kpi icon="sparkles" label="Margin" value={formatPct(t.margin_pct)} tone={profitTone(t.margin_pct)} sub="Profit ÷ selling" accent />
           </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Additional charges {formatINR(t.charges_total)} are pass-through (no profit) and not included above.
-          </p>
+          {/* Only older quotes carry additional charges (the feature was removed). */}
+          {t.charges_total > 0 && (
+            <p className="mt-2 text-xs text-slate-500">
+              Additional charges {formatINR(t.charges_total)} are pass-through (no profit) and not included above.
+            </p>
+          )}
           {t.incomplete_quotes > 0 && (
             <div role="status" className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
@@ -215,7 +235,7 @@ export default function PnlReportsPage() {
         </>
       )}
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {list.isError ? (
           <div className="p-6">
             <FormAlert>{dbErrorMessage(list.error)}</FormAlert>

@@ -208,10 +208,11 @@ function VendorTab() {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <label>
+        {/* Phones: the two filters side by side. */}
+        <div className="grid grid-cols-2 gap-3 sm:flex">
+          <label className="min-w-0">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Element</span>
             <select value={elementId ?? ''} onChange={(e) => setParam('element', e.target.value || null)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-56">
               <option value="">All elements</option>
@@ -222,7 +223,7 @@ function VendorTab() {
               ))}
             </select>
           </label>
-          <label>
+          <label className="min-w-0">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Vendor</span>
             <select value={vendorId ?? ''} onChange={(e) => setParam('vendor', e.target.value || null)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm sm:w-56">
               <option value="">All vendors</option>
@@ -321,7 +322,7 @@ function LogTab({ type }: { type: 'master_rate' | 'quote_override' }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-160 text-sm">
           <thead>
@@ -377,11 +378,16 @@ export default function RateHistoryPage() {
     <>
       <PageHeader
         title="Rate History"
-        description="Every rate change is kept — nothing here is ever overwritten. Vendor purchase rates are your own records; they are not used in quotes or P&L."
       />
-      <div role="tablist" aria-label="Rate history" className="mb-5 inline-flex flex-wrap rounded-lg bg-slate-100 p-1 text-sm">
+      {/* Phones: three equal tabs, labels may wrap to two lines; from sm up a normal segmented control. */}
+      <div role="tablist" aria-label="Rate history" className="mb-5 grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1 text-sm sm:inline-flex sm:gap-0">
         {TABS.map((t) => (
-          <TabButton key={t.key} selected={tab === t.key} onClick={() => setParams(t.key === 'vendor' ? {} : { tab: t.key })}>
+          <TabButton
+            key={t.key}
+            selected={tab === t.key}
+            onClick={() => setParams(t.key === 'vendor' ? {} : { tab: t.key })}
+            className="px-2! py-2! text-xs leading-tight sm:px-3! sm:py-1.5! sm:text-sm sm:whitespace-nowrap"
+          >
             {t.label}
           </TabButton>
         ))}

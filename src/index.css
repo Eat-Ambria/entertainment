@@ -11,6 +11,12 @@
 
   /* Brand accent: champagne gold. 600+ are deep enough for text/buttons on white (AA);
    * 300–400 are for text and highlights on the dark stage. */
+  /* Workspace surfaces: warm cream page and cards (dashboard theme). */
+  --color-cream-50: #fcf9f3;
+  --color-cream-100: #f6f0e6;
+  --color-cream-200: #ecdfca;
+  --color-cream-300: #dcc7a5;
+
   --color-brand-50: #fdf8ec;
   --color-brand-100: #f9edd0;
   --color-brand-200: #f3dba6;
@@ -359,9 +365,104 @@ html.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
+/* Dashboard: cards pop up one after another (transform + opacity; fill backwards = nothing left behind). */
+.dash-pop {
+  animation: dash-pop 850ms var(--ease-premium) backwards;
+}
+@keyframes dash-pop {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.92);
+  }
+}
+/* Dashboard greeting: slides up and in. */
+.dash-hero {
+  animation: dash-hero 900ms var(--ease-premium) backwards;
+}
+@keyframes dash-hero {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(6px);
+  }
+}
+/* Dashboard list rows / sections slide in from the left. */
+.dash-slide {
+  animation: dash-slide 700ms var(--ease-premium) backwards;
+}
+@keyframes dash-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+.dash-rise {
+  animation: dash-pop 800ms var(--ease-premium) backwards;
+}
+/* A soft light sweep across the revenue card every few seconds. */
+.card-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 230 180 / 0.16) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: card-sheen 5.5s var(--ease-premium) 1.2s infinite;
+}
+@keyframes card-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  35%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-sheen {
+    display: none;
+  }
+}
+
 /* Dashboard pipeline bar segments grow in from the left. */
 @keyframes grow {
   from {
     transform: scaleX(0);
   }
+}
+
+/* Workspace sidebar: the gold waves sway slowly. */
+.sidebar-sway {
+  transform-origin: 50% 100%;
+  animation: sidebar-sway 9s ease-in-out infinite alternate;
+}
+@keyframes sidebar-sway {
+  from {
+    transform: scale(1.06) translateX(-2.5%) translateY(0);
+  }
+  to {
+    transform: scale(1.1) translateX(2.5%) translateY(-1.5%);
+  }
+}
+
+/* Workspace pages (AdminLayout adds .ws-theme): white cards become frosted cream glass like the
+   dashboard. Dialogs keep their solid white panel. */
+.ws-theme :is(.rounded-xl, .rounded-2xl).bg-white:not([role='dialog']):not([role='dialog'] *) {
+  background-color: rgb(253 248 240 / 0.74);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.ws-theme :is(.rounded-xl, .rounded-2xl).border-slate-200:not([role='dialog']):not([role='dialog'] *) {
+  border-color: rgb(255 255 255 / 0.85);
+  box-shadow: 0 10px 30px -14px rgb(110 80 40 / 0.28);
+}
+/* Workspace: warm the cool greys (image placeholders, totals boxes, chips, table heads, tab tracks)
+   into cream tones so nothing reads as plain white/grey on the stage background. */
+.ws-theme .bg-slate-50 {
+  background-color: #f8efe2;
+}
+.ws-theme .bg-slate-100 {
+  background-color: #f1e3cc;
+}
+.ws-theme .text-slate-300 {
+  color: #c9a46a;
 }

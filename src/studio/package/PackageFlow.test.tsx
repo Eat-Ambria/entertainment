@@ -8,7 +8,6 @@ import userEvent from '@testing-library/user-event';
 import { renderApp, testProfile } from '@/test/renderApp';
 import { eventOptionsApi } from '@/data/eventOptions';
 import { studioCatalogApi, type StudioPackage } from '@/data/studioCatalog';
-import { chargeRatesApi, type ChargeRate } from '@/data/chargeRates';
 import { getQuoteDraft, setQuoteDraft } from '../quoteDraft';
 
 const pkg = (o: Partial<StudioPackage>): StudioPackage => ({
@@ -49,7 +48,6 @@ beforeEach(() => {
     rows: [pkg({}), pkg({ id: 'p2', name: 'Classic Package', tier_name: 'Standard', display_price: null, video_url: null })],
     total: 2,
   });
-  vi.spyOn(chargeRatesApi, 'list').mockResolvedValue([]); // no master charge rates unless a test sets them
   vi.spyOn(studioCatalogApi, 'packageLines').mockImplementation(async (id) => LINES[id as 'p1' | 'p2'].map((l) => ({ ...l })));
   setQuoteDraft(testProfile.id, (d) => ({
     ...d,
@@ -254,95 +252,5 @@ describe('Add element (quote only)', () => {
     expect(screen.getByLabelText('Include Fog Machine')).toBeChecked(); // added on purpose, so ticked
     expect(amountOf('Elements total')).toBe('₹3,000.00');
     expect(draft().packages[0]!.lines!.map((l) => l.elementId)).toEqual(['e1', 'e2', 'e9']);
-  });
-});
-
-describe('Additional charges from the master rates', () => {
-  const RATES: ChargeRate[] = [
-    { id: 'r1', code: 'transportation', label: 'Transportation', mode: 'fixed', rate: 1500, qty_per_package: 1, auto_add: true, sort_order: 1, venues: [] },
-    {
-      id: 'r2',
-      code: 'labour',
-      label: 'Labour',
-      mode: 'per_package',
-      rate: 500,
-      qty_per_package: 2,
-      auto_add: true,
-      sort_order: 2,
-      venues: [{ venue_id: 'v-push', rate: 700, qty_per_package: null }],
-    },
-  ];
-  const choose = (...ids: ('p1' | 'p2')[]) =>
-    setQuoteDraft(testProfile.id, (d) => ({
-      ...d,
-      packages: ids.map((id) => ({ id, name: id === 'p1' ? 'Royal Package' : 'Classic Package', tier: 'Premium', lines: null })),
-    }));
-  const charges = () => within(screen.getByRole('region', { name: 'Additional charges' }));
-
-  beforeEach(() => {
-    vi.mocked(chargeRatesApi.list).mockResolvedValue(RATES.map((r) => ({ ...r })));
-  });
-
-  it('pre-adds Transportation and Labour (2 per package × ₹500), read-only until Adjust rates', async () => {
-    choose('p1', 'p2');
-    renderApp('/studio/new?step=customise');
-    await screen.findByRole('region', { name: 'Additional charges' });
-    expect(await charges().findByText(/Labour \(4 × ₹500\.00\)/)).toBeInTheDocument();
-    expect(charges().getByText('Transportation')).toBeInTheDocument();
-    expect(amountOf('Charges total')).toBe('₹3,500.00');
-    expect(charges().queryByRole('textbox', { name: 'Charge 2 amount' })).not.toBeInTheDocument();
-    expect(charges().queryByRole('button', { name: '+ Labour' })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: /Adjust rates/ }));
-    const labour = charges().getByRole('textbox', { name: 'Charge 2 amount' });
-    await userEvent.clear(labour);
-    await userEvent.type(labour, '1800');
-    expect(amountOf('Charges total')).toBe('₹3,300.00');
-    expect(draft().charges[1]).toMatchObject({ rule: 'labour', adjusted: true, amount: '1800' });
-  });
-
-  it('follows the number of packages', async () => {
-    choose('p1');
-    renderApp('/studio/new?step=customise');
-    await screen.findByText('Entrance Arch');
-    expect(await charges().findByText(/Labour \(2 × ₹500\.00\)/)).toBeInTheDocument();
-    expect(amountOf('Charges total')).toBe('₹2,500.00');
-  });
-
-  it('does not add a removed charge back, but the chip brings it back', async () => {
-    choose('p1');
-    renderApp('/studio/new?step=customise');
-    await screen.findByText('Entrance Arch');
-    await charges().findByText(/Labour/);
-    await userEvent.click(charges().getByRole('button', { name: 'Remove charge 2' }));
-    expect(charges().queryByText(/Labour \(/)).not.toBeInTheDocument();
-    expect(draft().removedRules).toEqual(['labour']);
-    expect(amountOf('Charges total')).toBe('₹1,500.00');
-
-    await userEvent.click(charges().getByRole('button', { name: '+ Labour' }));
-    expect(await charges().findByText(/Labour \(2 × ₹500\.00\)/)).toBeInTheDocument();
-  });
-
-  it("uses the quote venue's Transportation amount; Labour is the same everywhere", async () => {
-    vi.mocked(chargeRatesApi.list).mockResolvedValue([
-      { ...RATES[0]!, venues: [{ venue_id: 'v-push', rate: 3500, qty_per_package: null }] },
-      RATES[1]!,
-    ]);
-    choose('p1');
-    setQuoteDraft(testProfile.id, (d) => ({ ...d, guest: { ...d.guest!, venueId: 'v-push' } }));
-    renderApp('/studio/new?step=customise');
-    await screen.findByRole('region', { name: 'Additional charges' });
-    expect(await charges().findByText(/Labour \(2 × ₹500\.00\)/)).toBeInTheDocument(); // old venue rate ignored
-    expect(amountOf('Charges total')).toBe('₹4,500.00'); // 3,500 transport at this venue + 2 × 500
-  });
-
-  it('skips a ₹0 rate and leaves reopened quotes alone', async () => {
-    vi.mocked(chargeRatesApi.list).mockResolvedValue([{ ...RATES[0]!, rate: 0 }, RATES[1]!]);
-    choose('p1');
-    setQuoteDraft(testProfile.id, (d) => ({ ...d, autoChargesOff: true, charges: [{ key: 'k1', description: 'Labour', amount: '900' }] }));
-    renderApp('/studio/new?step=customise');
-    await screen.findByText('Entrance Arch');
-    await waitFor(() => expect(chargeRatesApi.list).toHaveBeenCalled());
-    expect(draft().charges).toEqual([{ key: 'k1', description: 'Labour', amount: '900' }]);
   });
 });
