@@ -16,7 +16,7 @@ if (typeof HTMLCanvasElement !== 'undefined') {
   HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 }
 
-configure({ asyncUtilTimeout: 3000 });
+configure({ asyncUtilTimeout: 8000 });
 
 afterEach(() => {
   cleanup();

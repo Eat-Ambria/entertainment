@@ -214,9 +214,12 @@ export default function QuoteLedgerPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {rows.map((q) => (
-                    <tr key={q.id} className="hover:bg-slate-50">
+                    <tr
+                      key={q.id}
+                      className="group transition-[background-color,box-shadow] duration-200 ease-premium hover:bg-brand-50/70 hover:shadow-[inset_3px_0_0_var(--color-brand-500)]"
+                    >
                       <td className="px-4 py-3">
-                        <Link to={q.id} className="num font-medium text-brand-700 hover:text-brand-900">
+                        <Link to={q.id} className="num inline-block font-medium text-brand-700 transition-transform duration-200 ease-premium group-hover:translate-x-1 hover:text-brand-900">
                           {q.quote_no}
                         </Link>
                       </td>

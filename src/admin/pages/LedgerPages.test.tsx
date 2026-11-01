@@ -101,7 +101,8 @@ const lastList = () => vi.mocked(quoteLedgerApi.list).mock.calls.at(-1)![0];
 describe('Quote Ledger', () => {
   it('lists quotes with the required columns', async () => {
     renderApp('/admin/quotes');
-    expect(await screen.findByRole('link', { name: 'ENT-2026-00007' })).toHaveAttribute('href', '/admin/quotes/q1');
+    // First test in the file: the lazy page compiles on first use, which is slow when the whole suite runs.
+    expect(await screen.findByRole('link', { name: 'ENT-2026-00007' }, { timeout: 20000 })).toHaveAttribute('href', '/admin/quotes/q1');
     expect(screen.getByText('Kapoor Wedding')).toBeInTheDocument();
     expect(screen.getAllByText('₹72,000.00')).toHaveLength(2);
     expect(within(screen.getByRole('table')).getByText('Confirmed')).toBeInTheDocument();

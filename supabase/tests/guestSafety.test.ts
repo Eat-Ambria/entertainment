@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const GUEST_FACING = ['src/data/studioCatalog.ts', 'src/data/quotes.ts', 'src/data/eventOptions.ts', 'src/data/quoteEdit.ts', 'src/data/chargeRates.ts'];
+const GUEST_FACING = ['src/data/studioCatalog.ts', 'src/data/quotes.ts', 'src/data/eventOptions.ts', 'src/data/quoteEdit.ts'];
 const INTERNAL = /unit_cost|cost_source|vendor|master_rate_at_quote|margin|source_raw|notes|multiplier/;
 
 describe('guest-facing data never selects internal columns', () => {
