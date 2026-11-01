@@ -24,9 +24,10 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
-  // Signing in shows the chooser (Guest Studio or My Workspace); only a deep link (e.g. a saved
-  // quote) is opened straight away.
-  const target = from === '/studio' || from === '/admin' ? '/' : from;
+  // Signing in always shows the chooser (Guest Studio or My Workspace) — also after signing out
+  // from a Workspace page. Only a link to one specific quote or package (e.g. shared/bookmarked)
+  // is opened straight away.
+  const target = /\/(quotes|packages)\/[^/?#]+/.test(from) ? from : '/';
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

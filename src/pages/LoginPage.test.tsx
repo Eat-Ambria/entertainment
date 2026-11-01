@@ -25,14 +25,23 @@ describe('LoginPage', () => {
     expect(auth.signIn).not.toHaveBeenCalled();
   });
 
-  it('signs in and returns to the page the user wanted', async () => {
+  it('signs in and opens a linked quote straight away', async () => {
+    const auth = signedOut();
+    const { router } = renderApp('/login', auth, { from: '/admin/quotes/q1' });
+    await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await userEvent.type(screen.getByLabelText('Password'), 'old-pass-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(auth.signIn).toHaveBeenCalledWith('98765 43210', 'old-pass-1');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/quotes/q1'));
+  });
+
+  it('shows the Guest Studio / My Workspace choice after signing in from a Workspace page', async () => {
     const auth = signedOut();
     const { router } = renderApp('/login', auth, { from: '/admin/packages' });
     await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210');
     await userEvent.type(screen.getByLabelText('Password'), 'old-pass-1');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(auth.signIn).toHaveBeenCalledWith('98765 43210', 'old-pass-1');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/packages'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
   it('shows a friendly message for wrong credentials', async () => {
