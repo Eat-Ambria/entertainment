@@ -28,17 +28,17 @@ describe('LoginPage', () => {
   it('signs in and opens a linked quote straight away', async () => {
     const auth = signedOut();
     const { router } = renderApp('/login', auth, { from: '/admin/quotes/q1' });
-    await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210'); // the space is dropped
     await userEvent.type(screen.getByLabelText('Password'), 'old-pass-1');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(auth.signIn).toHaveBeenCalledWith('98765 43210', 'old-pass-1');
+    expect(auth.signIn).toHaveBeenCalledWith('9876543210', 'old-pass-1');
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/quotes/q1'));
   });
 
   it('shows the Guest Studio / My Workspace choice after signing in from a Workspace page', async () => {
     const auth = signedOut();
     const { router } = renderApp('/login', auth, { from: '/admin/packages' });
-    await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210');
+    await userEvent.type(await screen.findByLabelText('Mobile number'), '98765 43210'); // the space is dropped
     await userEvent.type(screen.getByLabelText('Password'), 'old-pass-1');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
@@ -52,6 +52,13 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'wrong');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Phone number or password is incorrect.');
+  });
+
+  it('keeps the mobile number to 10 digits (letters and symbols are dropped)', async () => {
+    renderApp('/login', signedOut());
+    const phone = await screen.findByLabelText('Mobile number');
+    await userEvent.type(phone, '9711540211feue+-55');
+    expect(phone).toHaveValue('9711540211');
   });
 
   it('can reveal the password', async () => {

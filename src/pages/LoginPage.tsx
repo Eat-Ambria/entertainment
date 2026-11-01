@@ -131,9 +131,11 @@ export default function LoginPage() {
               inputMode="numeric"
               autoComplete="tel-national"
               placeholder="98765 43210"
-              maxLength={14}
+              maxLength={10}
+              pattern="[0-9]*"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              // Digits only, at most 10 — letters and symbols are dropped as you type or paste.
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               error={phoneError}
               autoFocus
             />
