@@ -2,7 +2,7 @@
  * Tests for Guest Studio step 4 (Quotation) and the saved-quote page, with Supabase reads mocked.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderApp, testProfile } from '@/test/renderApp';
 import { eventOptionsApi } from '@/data/eventOptions';
@@ -20,6 +20,15 @@ vi.mock('./exportQuote', async (orig) => ({
 }));
 
 const total = () => screen.getByLabelText('Final total').textContent;
+
+/** Changes the first line's quantity, as an edit on the Customise step would. */
+const editDraft = () =>
+  act(() =>
+    setQuoteDraft(testProfile.id, (d) => ({
+      ...d,
+      packages: d.packages.map((b, i) => (i ? b : { ...b, lines: b.lines!.map((l, j) => (j ? l : { ...l, qty: String(Number(l.qty) + 1) })) })),
+    })),
+  );
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -138,7 +147,8 @@ describe('Quotation step', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save quote' }));
     expect(await screen.findByText('Quotation Saved Successfully')).toBeInTheDocument();
     expect(screen.getByText('ENT-2026-00007 · created')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    editDraft();
+    await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText('ENT-2026-00007 · updated')).toBeInTheDocument();
     expect(screen.getAllByText('Quotation Saved Successfully')).toHaveLength(1); // one celebration at a time
   });
@@ -168,7 +178,8 @@ describe('Quotation step', () => {
     expect(within(screen.getByRole('complementary', { name: 'Quotation actions' })).getByText('ENT-2026-00007')).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: 'Quotation' })).getByText('ENT-2026-00007')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    editDraft();
+    await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(quotesApi.save).toHaveBeenCalledTimes(2));
     expect(vi.mocked(quotesApi.save).mock.calls[1]![0].quote_id).toBe('q1');
   });
@@ -183,6 +194,8 @@ describe('Quotation step', () => {
       .mockResolvedValueOnce({ id: 'q2', quote_no: 'ENT-2026-00008' });
     renderApp('/studio/new?step=quote');
     await userEvent.click(await screen.findByRole('button', { name: 'Save quote' }));
+    await screen.findByText('Quote ENT-2026-00007 saved.');
+    editDraft();
     await userEvent.click(await screen.findByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText(/already confirmed and locked/)).toBeInTheDocument();
@@ -192,7 +205,7 @@ describe('Quotation step', () => {
     await waitFor(() => expect(quotesApi.save).toHaveBeenCalledTimes(3));
     expect(vi.mocked(quotesApi.save).mock.calls[2]![0].quote_id).toBeNull();
     expect(await screen.findByText('Quote ENT-2026-00008 saved.')).toBeInTheDocument();
-    expect(getQuoteDraft(testProfile.id).saved).toEqual({
+    expect(getQuoteDraft(testProfile.id).saved).toMatchObject({
       id: 'q2',
       quoteNo: 'ENT-2026-00008',
       status: 'draft',
@@ -234,6 +247,17 @@ describe('Quotation step', () => {
     expect(downloadPdf).not.toHaveBeenCalled();
   });
 
+  it('cannot re-save an unchanged quote: the button reads "All changes saved" and is disabled', async () => {
+    renderApp('/studio/new?step=quote');
+    await userEvent.click(await screen.findByRole('button', { name: 'Save quote' }));
+    const done = await screen.findByRole('button', { name: /All changes saved/ });
+    expect(done).toBeDisabled();
+    await userEvent.click(done);
+    expect(quotesApi.save).toHaveBeenCalledTimes(1);
+    editDraft();
+    expect(await screen.findByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+
   it('shows a friendly message when saving fails', async () => {
     vi.mocked(quotesApi.save).mockRejectedValueOnce({ code: 'P0429' });
     renderApp('/studio/new?step=quote');
@@ -248,11 +272,11 @@ describe('Quotation step', () => {
     expect(screen.queryByText(/Additional charges —|Optional — transport/)).not.toBeInTheDocument();
   });
 
-  it('has an obvious way back to edit elements and rates', async () => {
+  it('has an obvious way back to Customize', async () => {
     const { router } = renderApp('/studio/new?step=quote');
     await userEvent.click(
       await screen.findByRole('button', {
-        name: /Edit elements & rates/,
+        name: /Customize/,
       }),
     );
     await waitFor(() => expect(router.state.location.search).toBe('?step=customise'));

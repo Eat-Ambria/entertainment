@@ -153,7 +153,8 @@ export default function LoginPage() {
             <Icon name="lock" size={14} className="shrink-0 text-brand-300/70" />
             Forgot your password? Ask your admin to reset it.
           </p>
-          <div className="mt-4 flex justify-center">
+          {/* Phones and tablets only — on a laptop the app is used in the browser. */}
+          <div className="mt-4 flex justify-center lg:hidden">
             <InstallAppButton className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-brand-300 transition-colors duration-150 hover:bg-white/5 hover:text-brand-200" />
           </div>
         </div>

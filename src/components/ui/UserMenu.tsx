@@ -66,7 +66,7 @@ export function UserMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
           <InstallAppButton
             role="menuitem"
             onDone={() => setOpen(false)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 lg:hidden"
           />
           <button role="menuitem" type="button" onClick={() => void onSignOut()} className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">
             <Icon name="logout" size={16} /> Sign out

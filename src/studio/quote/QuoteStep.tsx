@@ -51,8 +51,17 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
   const summary = useMemo(() => summariseQuote(draft), [draft]);
   const doc = useMemo(() => documentFromDraft(draft, options.data, summary), [draft, options.data, summary]);
 
+  // Dirty check: "Save changes" only works when the quote differs from what was last saved here.
+  const snapshotOf = (p: NonNullable<ReturnType<typeof buildSavePayload>>) => JSON.stringify({ ...p, quote_id: null });
+  const current = useMemo(() => {
+    const p = buildSavePayload(draft);
+    return p ? snapshotOf(p) : null;
+  }, [draft]);
+  const unchanged = Boolean(draft.saved?.snapshot) && current === draft.saved?.snapshot;
+
   async function onSave(asNew = false) {
     if (save.isPending) return; // no double submits while a save is in flight
+    if (unchanged && !asNew) return; // nothing to save
     const built = buildSavePayload(draft);
     if (!built) {
       setShowErrors(true);
@@ -64,7 +73,8 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
       const firstSave = !draft.saved || asNew;
       const r = await save.mutateAsync(payload);
       setCelebrate({ key: Date.now(), quoteNo: r.quote_no, created: firstSave });
-      updateDraft((d) => ({ ...d, saved: { id: r.id, quoteNo: r.quote_no, status: 'draft' } }));
+      const snapshot = snapshotOf(built);
+      updateDraft((d) => ({ ...d, saved: { id: r.id, quoteNo: r.quote_no, status: 'draft', snapshot } }));
       toast.success(`Quote ${r.quote_no} saved.`);
     } catch (err) {
       const info = saveErrorInfo(err);
@@ -127,8 +137,16 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
             <p className="mt-1 text-xs text-ivory/45">{draft.saved ? 'Saved — download the PDF or keep editing.' : 'Save it to get a quote number and the PDF.'}</p>
             <div className="gold-hairline my-4" />
             <div className="space-y-2">
-              <Button variant="gold" full onClick={() => void onSave()} loading={save.isPending}>
-                {draft.saved ? 'Save changes' : 'Save quote'}
+              <Button variant="gold" full onClick={() => void onSave()} loading={save.isPending} disabled={unchanged} title={unchanged ? 'No changes since the last save' : undefined}>
+                {unchanged ? (
+                  <>
+                    <Icon name="check" size={16} /> All changes saved
+                  </>
+                ) : draft.saved ? (
+                  'Save changes'
+                ) : (
+                  'Save quote'
+                )}
               </Button>
               {draft.saved && (
                 <div className="grid">
@@ -142,7 +160,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
                 onClick={onBack}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-ivory/70 transition-colors duration-150 hover:bg-white/5 hover:text-ivory"
               >
-                <Icon name="edit" size={16} className="text-brand-300" /> Edit elements & rates
+                <Icon name="edit" size={16} className="text-brand-300" /> Customize
               </button>
             </div>
           </div>

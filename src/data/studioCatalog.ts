@@ -109,8 +109,17 @@ async function activeElements(): Promise<StudioElement[]> {
 /** Object so tests can mock the Supabase calls. */
 export const studioCatalogApi = { listActivePackages, packageLines, activeElements };
 
+/** Re-read every time the Add element dialog opens, so an element just created in the Workspace
+ * (even in another tab) shows up straight away; the cached list is shown meanwhile. */
 export function useActiveElements(enabled: boolean) {
-  return useQuery({ queryKey: ['studio', 'elements'], queryFn: () => studioCatalogApi.activeElements(), enabled, staleTime: 5 * 60_000 });
+  return useQuery({
+    queryKey: ['studio', 'elements'],
+    queryFn: () => studioCatalogApi.activeElements(),
+    enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
 }
 
 /** Query options shared by the Package step and the Guest step's prefetch. Each page's card

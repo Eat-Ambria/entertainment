@@ -75,6 +75,7 @@ describe('pdfDefinition', () => {
 
   it('renders to a real PDF', async () => {
     const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../node_modules/pdfmake/build/fonts/Roboto');
+    const fonts = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../public/fonts');
     pdfmake.addFonts({
       Roboto: {
         normal: path.join(dir, 'Roboto-Regular.ttf'),
@@ -82,9 +83,23 @@ describe('pdfDefinition', () => {
         italics: path.join(dir, 'Roboto-Italic.ttf'),
         bolditalics: path.join(dir, 'Roboto-MediumItalic.ttf'),
       },
+      Inter: {
+        normal: path.join(fonts, 'Inter-Regular.ttf'),
+        bold: path.join(fonts, 'Inter-SemiBold.ttf'),
+        italics: path.join(fonts, 'Inter-Regular.ttf'),
+        bolditalics: path.join(fonts, 'Inter-SemiBold.ttf'),
+      },
+      Fraunces: {
+        normal: path.join(fonts, 'Fraunces-Regular.ttf'),
+        bold: path.join(fonts, 'Fraunces-SemiBold.ttf'),
+        italics: path.join(fonts, 'Fraunces-Regular.ttf'),
+        bolditalics: path.join(fonts, 'Fraunces-SemiBold.ttf'),
+      },
     });
     (pdfmake as unknown as { setLocalAccessPolicy(cb: () => boolean): void }).setLocalAccessPolicy(() => true);
-    const buf: Buffer = await pdfmake.createPdf(pdfDefinition(data, brand)).getBuffer();
+    const logo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../public/logo-mark-pdf.png');
+    const buf: Buffer = await pdfmake.createPdf(pdfDefinition(data, brand, logo)).getBuffer();
+    if (process.env.PDF_PREVIEW) (await import('node:fs')).writeFileSync(process.env.PDF_PREVIEW, buf);
     expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
     expect(buf.length).toBeGreaterThan(5000);
   }, 20000);

@@ -96,7 +96,8 @@ export default function QuoteDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <QuoteDocument data={documentFromSaved(guest.data)} />
 
-        <aside className="space-y-4">
+        {/* Stays in view while the quotation on the left scrolls. */}
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="num font-semibold text-slate-900">{q.quote_no}</h2>

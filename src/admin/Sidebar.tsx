@@ -3,12 +3,13 @@
  * beside the emblem, a gold-framed active item, on the user's dark gold-wave artwork.
  * Fixed on desktop, slide-in drawer on mobile/tablet.
  */
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { ADMIN_ROOT, NAV_ITEMS, NAV_SECTIONS } from './nav';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/auth/AuthContext';
 import { asset } from '@/lib/asset';
 import { BRAND } from '@/lib/brand';
+import { STUDIO_ROOT } from '@/studio/steps';
 
 interface SidebarProps {
   open: boolean;
@@ -102,6 +103,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
+        {/* Shortcut into the client-facing Guest Studio, on every Workspace page. */}
+        <div className="relative px-4 pb-6">
+          <Link
+            to={STUDIO_ROOT}
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 rounded-xl border border-ivory/60 bg-black/30 px-4 py-2.5 text-sm font-medium text-ivory backdrop-blur-sm transition-colors duration-150 hover:border-brand-300 hover:bg-white/10"
+          >
+            <Icon name="present" size={18} />
+            Open Guest Studio
+          </Link>
+        </div>
       </aside>
     </>
   );

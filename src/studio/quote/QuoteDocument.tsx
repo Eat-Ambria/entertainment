@@ -1,5 +1,6 @@
 /**
- * The branded quotation as the guest sees it (Guest View, saved quote, later the PDF).
+ * The branded quotation as the guest sees it (Quotation step, saved quote). The PDF
+ * (exportQuote.ts) is drawn to look exactly like this.
  * Pure presentation from QuoteDocumentData — it has no access to cost, margin, master
  * rates, vendor data or internal notes.
  */
@@ -126,10 +127,13 @@ export function QuoteDocument({ data }: { data: QuoteDocumentData }) {
           <dt className="text-slate-500">Elements subtotal</dt>
           <dd className="num text-slate-900">{formatINR(data.subtotal)}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Additional charges</dt>
-          <dd className="num text-slate-900">{formatINR(data.chargesTotal)}</dd>
-        </div>
+        {/* Only older quotes carry additional charges (the feature was removed). */}
+        {data.chargesTotal > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-slate-500">Additional charges</dt>
+            <dd className="num text-slate-900">{formatINR(data.chargesTotal)}</dd>
+          </div>
+        )}
         <div className="flex items-baseline justify-between border-t border-stone-200 pt-3">
           <dt className="font-semibold text-slate-900">Total</dt>
           <dd className="num text-2xl font-semibold text-slate-900" aria-label="Final total">

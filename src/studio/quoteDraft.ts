@@ -69,7 +69,8 @@ export interface QuoteDraft {
   /** Reopened saved quotes keep their charges exactly; no auto charges are added. */
   autoChargesOff?: boolean;
   /** Set after the first save; later saves update this draft quote in place. */
-  saved: { id: string; quoteNo: string; status?: 'draft' } | null;
+  /** snapshot = the saved payload (JSON, without the quote id) — used to tell if anything changed since. */
+  saved: { id: string; quoteNo: string; status?: 'draft'; snapshot?: string } | null;
 }
 
 export const EMPTY_DRAFT: QuoteDraft = { guest: null, packages: [], charges: [], saved: null };

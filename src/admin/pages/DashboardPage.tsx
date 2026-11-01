@@ -1,7 +1,7 @@
 /**
  * My Workspace dashboard (warm cream theme; the stage photo behind the greeting comes from
  * AdminLayout):
- *  - greeting ("Good Morning, Vikash"), today's date, New Quote and Open Guest Studio;
+ *  - greeting ("Good Morning, Vikash"), today's date and New Quote (Open Guest Studio is in the sidebar);
  *  - KPI cards from the Quote Ledger — quotes this month (vs last month), drafts to follow up,
  *    confirmed quotes (+ this month) — and confirmed revenue for this month's events (P&L);
  *  - the quote pipeline (draft / confirmed / cancelled) as one bar;
@@ -18,7 +18,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatINR } from '@/lib/money';
 import { formatDate, todayIst } from '@/lib/date';
 import { ADMIN_ROOT } from '../nav';
-import { STUDIO_NEW_QUOTE, STUDIO_ROOT } from '@/studio/steps';
+import { STUDIO_NEW_QUOTE } from '@/studio/steps';
 import { useLedger } from '../quotes/useQuoteLedger';
 import type { LedgerParams, QuoteStatus } from '../quotes/quoteLedgerApi';
 import { pnlApi } from '../pnl/pnlApi';
@@ -146,13 +146,6 @@ export default function DashboardPage() {
           >
             <Icon name="plus" size={18} />
             New Quote
-          </Link>
-          <Link
-            to={STUDIO_ROOT}
-            className="inline-flex items-center gap-2 rounded-xl border border-ivory/70 px-5 py-2.5 text-sm font-medium text-ivory transition-colors duration-150 hover:bg-white/10"
-          >
-            <Icon name="present" size={18} />
-            Open Guest Studio
           </Link>
         </div>
       </section>

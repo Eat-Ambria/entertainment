@@ -32,7 +32,10 @@ export function useSaveElement() {
   return useMutation({
     mutationFn: (v: { id: string | null; input: ElementInput; reason: string | null }) =>
       v.id ? elementsApi.update(v.id, v.input, v.reason) : elementsApi.create(v.input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: elementKeys.all }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: elementKeys.all });
+      void qc.invalidateQueries({ queryKey: ['studio'] }); // Guest Studio element lists / package lines
+    },
   });
 }
 
@@ -40,7 +43,10 @@ export function useSetElementActive() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { id: string; active: boolean }) => elementsApi.setActive(v.id, v.active),
-    onSuccess: () => qc.invalidateQueries({ queryKey: elementKeys.all }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: elementKeys.all });
+      void qc.invalidateQueries({ queryKey: ['studio'] }); // Guest Studio element lists / package lines
+    },
   });
 }
 
@@ -51,6 +57,7 @@ export function useDeleteElement() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: elementKeys.all });
       void qc.invalidateQueries({ queryKey: ['packages'] });
+      void qc.invalidateQueries({ queryKey: ['studio'] });
     },
   });
 }

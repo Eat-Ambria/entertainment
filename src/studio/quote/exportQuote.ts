@@ -1,7 +1,8 @@
 /**
  * Quotation download — PDF (pdfmake), built from the saved snapshot (QuoteDocumentData,
- * so nothing internal can leak). The library is large, so it is loaded only when the user
- * clicks Download. The builder is pure for testing.
+ * so nothing internal can leak). It looks exactly like the on-screen quotation after saving
+ * (QuoteDocument), with the Ambria mark and Fraunces + Inter. The library, fonts and logo are
+ * loaded only when the user clicks Download. The builder is pure for testing.
  */
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { formatINR } from '@/lib/money';
@@ -9,6 +10,7 @@ import { formatDate } from '@/lib/date';
 import { formatPhone } from '@/lib/phone';
 import { formatQty } from '@/lib/numbers';
 import { BRAND } from '@/lib/brand';
+import { asset } from '@/lib/asset';
 import type { QuoteDocumentData } from './documentData';
 
 export interface ExportBrand {
@@ -37,21 +39,48 @@ export function quoteFileName(data: Pick<QuoteDocumentData, 'quoteNo' | 'guestNa
 const eventLine = (d: QuoteDocumentData) => [d.eventDate && formatDate(d.eventDate), d.sessionName].filter(Boolean).join(' · ');
 const venueLine = (d: QuoteDocumentData) => [d.venueName, d.subVenueName].filter(Boolean).join(' · ');
 
-const INK = '#0f172a';
-const MUTED = '#64748b';
-const RULE = '#e7e5e4';
-const ACCENT = '#946f30'; // brand-600 (champagne, readable on white)
+// Same colours as the on-screen quotation (QuoteDocument): white paper, slate text, stone rules.
+const INK = '#0f172a'; // slate-900
+const BODY = '#1e293b'; // slate-800
+const MUTED = '#64748b'; // slate-500
+const FAINT = '#94a3b8'; // slate-400
+const RULE = '#e7e5e4'; // stone-200
+const RULE_SOFT = '#f5f5f4'; // stone-100
+const CHIP_BG = '#f5f5f4'; // stone-100
+const CHIP_TEXT = '#57534e'; // stone-600
+const BRAND_50 = '#fdf8ec';
+const BRAND_700 = '#7a5a25';
 
-/** Pure: the pdfmake document definition. */
-export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand): TDocumentDefinitions {
+const CONTENT_W = 515; // A4 width minus 40pt margins
+/** [left, top, right, bottom] margin tuple (pdfmake needs a fixed-length tuple type). */
+const mg = (l: number, t: number, r: number, b: number): [number, number, number, number] => [l, t, r, b];
+
+const STATUS_LABEL: Record<QuoteDocumentData['status'], string> = { draft: 'Draft', sent: 'Sent', confirmed: 'Confirmed', cancelled: 'Cancelled' };
+
+/** A small rounded-looking chip (pdfmake tables can't round corners; padding keeps it soft). */
+const chip = (text: string, bg: string, color: string, bold = false): Content => ({
+  table: { body: [[{ text, fontSize: 8, bold, color, margin: mg(7, 1, 7, 1) }]] },
+  layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => bg, paddingTop: () => 2, paddingBottom: () => 2 },
+});
+const rightAligned = (c: Content, margin = mg(0, 0, 0, 0)): Content => ({ columns: [{ text: '', width: '*' }, { width: 'auto', stack: [c] }], margin });
+const rule = (margin: [number, number, number, number]): Content => ({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: CONTENT_W, y2: 0, lineWidth: 0.75, lineColor: RULE }], margin });
+
+/**
+ * Pure: the pdfmake document definition — a print of the on-screen quotation (QuoteDocument):
+ * brand mark + name + "ENTERTAINMENT", "Quotation", number, date, status chip; Prepared for /
+ * Event; one table per package (tier chip, subtotal when several); charges (older quotes only);
+ * totals; "All amounts in Indian Rupees (₹)." Fonts: Fraunces (brand name) + Inter, registered in
+ * downloadPdf. `logo` is a PNG data URL (or a file path in tests).
+ */
+export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand, logo?: string): TDocumentDefinitions {
   const sections = d.sections.map((sec): Content => ({
     stack: [
       {
         columns: [
-          { text: sec.name, style: 'section' },
-          sec.tier ? { text: sec.tier, color: ACCENT, bold: true, fontSize: 9, alignment: 'right', width: 'auto', margin: [0, 3, 0, 0] } : { text: '' },
+          { text: sec.name, fontSize: 13, bold: true, color: INK, width: '*' },
+          ...(sec.tier ? [{ width: 'auto' as const, stack: [chip(sec.tier, BRAND_50, BRAND_700, true)] }] : []),
         ],
-        margin: [0, 16, 0, 6],
+        margin: mg(0, 18, 0, 8),
       },
       {
         table: {
@@ -65,10 +94,10 @@ export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand): TDocume
               { text: 'AMOUNT', style: 'th', alignment: 'right' },
             ],
             ...sec.items.map((i) => [
-              i.remarks ? { stack: [{ text: i.name }, { text: i.remarks, fontSize: 8, color: MUTED, italics: true }] } : { text: i.name },
-              { text: formatQty(i.qty, i.unit), alignment: 'right' as const, color: MUTED },
-              { text: formatINR(i.rate), alignment: 'right' as const, color: MUTED },
-              { text: formatINR(i.amount), alignment: 'right' as const, bold: true },
+              i.remarks ? { stack: [{ text: i.name, color: BODY }, { text: i.remarks, fontSize: 8, color: MUTED, italics: true }] } : { text: i.name, color: BODY },
+              { text: formatQty(i.qty, i.unit), alignment: 'right' as const, color: '#475569' },
+              { text: formatINR(i.rate), alignment: 'right' as const, color: '#475569' },
+              { text: formatINR(i.amount), alignment: 'right' as const, bold: true, color: INK },
             ]),
             ...(d.sections.length > 1
               ? [
@@ -76,19 +105,20 @@ export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand): TDocume
                     { text: `${sec.name} subtotal`, colSpan: 3, alignment: 'right' as const, color: MUTED },
                     {},
                     {},
-                    { text: formatINR(sec.subtotal), alignment: 'right' as const, bold: true },
+                    { text: formatINR(sec.subtotal), alignment: 'right' as const, bold: true, color: INK },
                   ],
                 ]
               : []),
           ],
         },
         layout: {
-          hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
+          // border-y on the header, soft dividers between rows, a full rule above the subtotal.
+          hLineWidth: (i: number, node: { table: { body: unknown[] } }) => (i === 0 || i === 1 || (d.sections.length > 1 && i === node.table.body.length - 1) ? 0.75 : i === node.table.body.length ? 0 : 0.6),
+          hLineColor: (i: number, node: { table: { body: unknown[] } }) => (i <= 1 || (d.sections.length > 1 && i === node.table.body.length - 1) ? RULE : RULE_SOFT),
           vLineWidth: () => 0,
-          hLineColor: () => RULE,
-          paddingTop: () => 6,
-          paddingBottom: () => 6,
-          paddingLeft: () => 0,
+          paddingTop: () => 7,
+          paddingBottom: () => 7,
+          paddingLeft: (i: number) => (i === 0 ? 0 : 8),
           paddingRight: (i: number) => (i === 3 ? 0 : 8),
         },
       },
@@ -97,18 +127,18 @@ export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand): TDocume
 
   const charges: Content[] = d.charges.length
     ? [
-        { text: 'ADDITIONAL CHARGES', style: 'th', margin: [0, 18, 0, 4] },
+        { text: 'ADDITIONAL CHARGES', style: 'th', margin: mg(0, 18, 0, 4) },
         {
           table: {
             widths: ['*', 85],
-            body: d.charges.map((c) => [{ text: c.description }, { text: formatINR(c.amount), alignment: 'right' as const, bold: true }]),
+            body: d.charges.map((c) => [{ text: c.description, color: BODY }, { text: formatINR(c.amount), alignment: 'right' as const, bold: true }]),
           },
           layout: {
-            hLineWidth: (i: number) => (i === 0 ? 0 : 0.5),
+            hLineWidth: (i: number) => (i === 0 ? 0 : 0.6),
+            hLineColor: () => RULE_SOFT,
             vLineWidth: () => 0,
-            hLineColor: () => RULE,
-            paddingTop: () => 5,
-            paddingBottom: () => 5,
+            paddingTop: () => 6,
+            paddingBottom: () => 6,
             paddingLeft: () => 0,
             paddingRight: () => 0,
           },
@@ -116,89 +146,132 @@ export function pdfDefinition(d: QuoteDocumentData, brand: ExportBrand): TDocume
       ]
     : [];
 
-  const totalRow = (label: string, value: number, strong = false) => ({
+  const totalRow = (label: string, value: number) => ({
     columns: [
-      { text: label, color: strong ? INK : MUTED, bold: strong },
-      { text: formatINR(value), alignment: 'right' as const, bold: strong, fontSize: strong ? 14 : 10, width: 110 },
+      { text: label, color: MUTED },
+      { text: formatINR(value), alignment: 'right' as const, color: INK, width: 120 },
     ],
-    margin: [0, 3, 0, 3] as [number, number, number, number],
+    margin: mg(0, 3, 0, 3),
   });
 
   return {
     info: { title: `Quotation ${d.quoteNo ?? ''}`.trim(), author: brand.name },
     pageSize: 'A4',
     pageMargins: [40, 40, 40, 50],
-    defaultStyle: { font: 'Roboto', fontSize: 10, color: INK, lineHeight: 1.2 },
+    ...(logo ? { images: { logo } } : {}),
+    defaultStyle: { font: 'Inter', fontSize: 9.5, color: INK, lineHeight: 1.25 },
     styles: {
-      brand: { fontSize: 16, bold: true },
-      title: { fontSize: 20, bold: true, alignment: 'right' },
-      label: { fontSize: 8, bold: true, color: '#94a3b8', characterSpacing: 0.8 },
-      section: { fontSize: 13, bold: true },
-      th: { fontSize: 8, bold: true, color: MUTED, characterSpacing: 0.6 },
+      label: { fontSize: 7.5, bold: true, color: FAINT, characterSpacing: 0.9 },
+      th: { fontSize: 7.5, bold: true, color: MUTED, characterSpacing: 0.9 },
     },
-    footer: (page: number, pages: number) => ({
-      columns: [
-        { text: 'All amounts in Indian Rupees (₹).', color: '#94a3b8', fontSize: 8 },
-        { text: `Page ${page} of ${pages}`, alignment: 'right', color: '#94a3b8', fontSize: 8 },
-      ],
-      margin: [40, 16, 40, 0],
-    }),
+    footer: (page: number, pages: number) =>
+      pages > 1 ? { text: `Page ${page} of ${pages}`, alignment: 'right', color: FAINT, fontSize: 7.5, margin: mg(40, 18, 40, 0) } : null,
     content: [
+      // Header: brand on the left, "Quotation" block on the right.
       {
         columns: [
-          { stack: [{ text: brand.name, style: 'brand' }, ...(brand.contact ? [{ text: brand.contact, color: MUTED, fontSize: 9, margin: [0, 3, 0, 0] as [number, number, number, number] }] : [])] },
           {
+            width: '*',
             stack: [
-              { text: 'Quotation', style: 'title' },
-              { text: d.quoteNo ?? '', alignment: 'right', color: MUTED },
-              { text: formatDate(d.date), alignment: 'right', color: MUTED },
+              {
+                columns: [
+                  ...(logo ? [{ image: 'logo', width: 40, height: 40 }, { text: '', width: 10 }] : []),
+                  {
+                    width: '*',
+                    stack: [
+                      { text: brand.name, font: 'Fraunces', fontSize: 16, color: INK, margin: mg(0, logo ? 4 : 0, 0, 0) },
+                      { text: 'ENTERTAINMENT', fontSize: 7.5, color: BRAND_700, characterSpacing: 2.2, margin: mg(0, 2, 0, 0) },
+                    ],
+                  },
+                ],
+              },
+              ...(brand.contact ? [{ text: brand.contact, color: MUTED, fontSize: 8.5, margin: mg(0, 8, 0, 0) }] : []),
             ],
+          },
+          {
             width: 'auto',
+            stack: [
+              { text: 'Quotation', fontSize: 19, bold: true, color: INK, alignment: 'right' },
+              { text: d.quoteNo ?? 'Not saved yet', color: MUTED, alignment: 'right', margin: mg(0, 3, 0, 0) },
+              { text: formatDate(d.date), color: MUTED, alignment: 'right' },
+              rightAligned(chip(STATUS_LABEL[d.status], CHIP_BG, CHIP_TEXT), mg(0, 6, 0, 0)),
+            ],
           },
         ],
       },
-      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: RULE }], margin: [0, 14, 0, 14] },
+      rule(mg(0, 16, 0, 16)),
+      // Prepared for / Event
       {
         columns: [
           {
             stack: [
               { text: 'PREPARED FOR', style: 'label' },
-              { text: d.guestName, bold: true, margin: [0, 4, 0, 0] },
+              { text: d.guestName, bold: true, color: INK, margin: mg(0, 4, 0, 0) },
               ...(d.phone ? [{ text: `+91 ${formatPhone(d.phone)}`, color: MUTED }] : []),
             ],
           },
           {
             stack: [
               { text: 'EVENT', style: 'label' },
-              { text: d.functionName, bold: true, margin: [0, 4, 0, 0] },
+              { text: d.functionName, bold: true, color: INK, margin: mg(0, 4, 0, 0) },
               ...(eventLine(d) ? [{ text: eventLine(d), color: MUTED }] : []),
               ...(venueLine(d) ? [{ text: venueLine(d), color: MUTED }] : []),
             ],
           },
         ],
       },
+      rule(mg(0, 16, 0, 0)),
       ...sections,
       ...charges,
+      // Totals (kept in one piece so they never split across pages).
       {
-        margin: [280, 18, 0, 0],
+        unbreakable: true,
+        margin: mg(CONTENT_W - 230, 18, 0, 0),
         stack: [
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 230, y2: 0, lineWidth: 0.75, lineColor: RULE }], margin: mg(0, 0, 0, 8) },
           totalRow('Elements subtotal', d.subtotal),
-          totalRow('Additional charges', d.chargesTotal),
-          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 235, y2: 0, lineWidth: 0.5, lineColor: RULE }], margin: [0, 4, 0, 4] },
-          totalRow('Total', d.total, true),
+          ...(d.chargesTotal > 0 ? [totalRow('Additional charges', d.chargesTotal)] : []),
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 230, y2: 0, lineWidth: 0.75, lineColor: RULE }], margin: mg(0, 6, 0, 6) },
+          {
+            columns: [
+              { text: 'Total', bold: true, color: INK, margin: mg(0, 4, 0, 0) },
+              { text: formatINR(d.total), fontSize: 17, bold: true, color: INK, alignment: 'right' as const, width: 150 },
+            ],
+          },
         ],
       },
+      { text: 'All amounts in Indian Rupees (₹).', alignment: 'center', color: FAINT, fontSize: 8, margin: mg(0, 28, 0, 0) },
     ],
   };
 }
 
 const defaultOf = <T>(m: T | { default: T }): T => ((m as { default?: T }).default ?? m) as T;
 
+/** public/ file → base64 (for pdfmake's virtual file system) */
+async function base64Of(file: string): Promise<string> {
+  const res = await fetch(asset(file));
+  if (!res.ok) throw new Error(`Could not load ${file}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+/** Brand fonts (SIL Open Font License, from Google Fonts) in public/fonts. */
+const FONT_FILES = ['Fraunces-Regular.ttf', 'Fraunces-SemiBold.ttf', 'Inter-Regular.ttf', 'Inter-SemiBold.ttf'] as const;
+
 export async function downloadPdf(d: QuoteDocumentData, brand: ExportBrand): Promise<void> {
-  const [pdfMake, vfs] = await Promise.all([
+  const [pdfMake, vfs, fonts, logo] = await Promise.all([
     import('pdfmake/build/pdfmake').then(defaultOf),
     import('pdfmake/build/vfs_fonts').then(defaultOf),
+    Promise.all(FONT_FILES.map(async (f) => [f, await base64Of(`fonts/${f}`)] as const)),
+    base64Of('logo-mark-pdf.png').then((b) => `data:image/png;base64,${b}`).catch(() => undefined),
   ]);
-  pdfMake.addVirtualFileSystem(vfs); // Roboto (has the ₹ glyph) is pdfmake's default font
-  await pdfMake.createPdf(pdfDefinition(d, brand)).download(quoteFileName(d, 'pdf'));
+  pdfMake.addVirtualFileSystem({ ...(vfs as Record<string, string>), ...Object.fromEntries(fonts) });
+  pdfMake.addFonts({
+    Roboto: { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Medium.ttf', italics: 'Roboto-Italic.ttf', bolditalics: 'Roboto-MediumItalic.ttf' },
+    Inter: { normal: 'Inter-Regular.ttf', bold: 'Inter-SemiBold.ttf', italics: 'Inter-Regular.ttf', bolditalics: 'Inter-SemiBold.ttf' },
+    Fraunces: { normal: 'Fraunces-Regular.ttf', bold: 'Fraunces-SemiBold.ttf', italics: 'Fraunces-Regular.ttf', bolditalics: 'Fraunces-SemiBold.ttf' },
+  });
+  await pdfMake.createPdf(pdfDefinition(d, brand, logo)).download(quoteFileName(d, 'pdf'));
 }
