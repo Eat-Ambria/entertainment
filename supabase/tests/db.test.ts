@@ -18,6 +18,9 @@ let userB: string;
 const one = async <T>(tx: Transaction | PGlite, sql: string, params: unknown[] = []) =>
   (await tx.query<T>(sql, params)).rows[0]!;
 
+/** Thrown at the end of a test transaction to undo it (the shared catalogue would keep it). */
+const ROLLBACK = 'test rollback';
+
 async function tierId(tx: Transaction, name = 'Standard'): Promise<string> {
   return (await one<{ id: string }>(tx, `select id from public.tiers where name = $1`, [name])).id;
 }
@@ -186,7 +189,7 @@ describe('profiles', () => {
   });
 });
 
-describe('per-user isolation (RLS)', () => {
+describe('shared catalogue (0030)', () => {
   let elementA: string;
 
   beforeAll(async () => {
@@ -198,18 +201,25 @@ describe('per-user isolation (RLS)', () => {
     await expect(asAnon(db, (tx) => tx.query(`select * from public.quotes`))).rejects.toThrow(/permission denied/);
   });
 
-  it("user B cannot see user A's element", async () => {
+  it("user B sees user A's element", async () => {
     const res = await asUser(db, userB, (tx) => tx.query(`select id from public.elements where id = $1`, [elementA]));
-    expect(res.rows).toEqual([]);
+    expect(res.rows).toEqual([{ id: elementA }]);
   });
 
-  it("user B cannot update user A's element", async () => {
-    const res = await asUser(db, userB, (tx) =>
-      tx.query(`update public.elements set default_rate = 1 where id = $1`, [elementA]),
-    );
-    expect(res.affectedRows).toBe(0);
-    const still = await one<{ r: string }>(db, `select default_rate r from public.elements where id = $1`, [elementA]);
-    expect(Number(still.r)).toBe(25000);
+  it("user B can edit user A's element (logged with B as the editor)", async () => {
+    await expect(
+      asUser(db, userB, async (tx) => {
+        const res = await tx.query(`update public.elements set default_rate = 26000 where id = $1`, [elementA]);
+        expect(res.affectedRows).toBe(1);
+        const log = await one<{ changed_by: string }>(
+          tx,
+          `select changed_by from public.rate_change_logs where element_id = $1 and new_rate = 26000`,
+          [elementA],
+        );
+        expect(log.changed_by).toBe(userB);
+        throw new Error(ROLLBACK);
+      }),
+    ).rejects.toThrow(ROLLBACK);
   });
 
   it('user B cannot create rows owned by user A', async () => {
@@ -220,7 +230,7 @@ describe('per-user isolation (RLS)', () => {
     ).rejects.toThrow(/row-level security/);
   });
 
-  it("user B cannot put user A's element in their package", async () => {
+  it("user B can put user A's element in their package", async () => {
     await expect(
       asUser(db, userB, async (tx) => {
         const pkg = await one<{ id: string }>(
@@ -229,14 +239,24 @@ describe('per-user isolation (RLS)', () => {
           [await tierId(tx)],
         );
         await tx.query(`insert into public.package_elements (package_id, element_id) values ($1, $2)`, [pkg.id, elementA]);
+        throw new Error(ROLLBACK);
       }),
-    ).rejects.toThrow(/foreign key/);
+    ).rejects.toThrow(ROLLBACK);
   });
 
-  it("user B cannot delete user A's element", async () => {
-    const res = await asUser(db, userB, (tx) => tx.query(`delete from public.elements where id = $1`, [elementA]));
-    expect(res.affectedRows).toBe(0);
-    await expect(asUser(db, userB, (tx) => tx.query(`select public.delete_element($1)`, [elementA]))).rejects.toThrow(/not found/);
+  it("user B can delete user A's unused element", async () => {
+    await expect(
+      asUser(db, userB, async (tx) => {
+        await tx.query(`select public.delete_element($1)`, [elementA]);
+        expect((await tx.query(`select id from public.elements where id = $1`, [elementA])).rows).toEqual([]);
+        throw new Error(ROLLBACK);
+      }),
+    ).rejects.toThrow(ROLLBACK);
+  });
+
+  it('merges tiers into one list', async () => {
+    const res = await asUser(db, userB, (tx) => tx.query<{ name: string }>(`select name from public.tiers order by sort_order`));
+    expect(res.rows.map((r) => r.name)).toEqual(['Standard', 'Premium']);
   });
 });
 
@@ -252,9 +272,9 @@ describe('catalogue constraints', () => {
     ).rejects.toThrow(/check constraint/);
   });
 
-  it('active element names are unique per user, but another user may reuse them', async () => {
-    await expect(asUser(db, userA, (tx) => newElement(tx, 'entrance arch'))).rejects.toThrow(/duplicate key/);
-    await expect(asUser(db, userB, (tx) => newElement(tx, 'Entrance Arch'))).resolves.toBeTruthy();
+  it('active element names are unique across the team', async () => {
+    await expect(asUser(db, userA, (tx) => newElement(tx, 'entrance arch'))).rejects.toMatchObject({ code: '23505' });
+    await expect(asUser(db, userB, (tx) => newElement(tx, 'Entrance Arch'))).rejects.toThrow(/already exists/);
   });
 
   it('maps elements to a package with default quantities', async () => {
@@ -397,9 +417,13 @@ describe('vendor purchase rates (append-only)', () => {
     await expect(
       asUser(db, userA, (tx) => tx.query(`update public.vendor_rate_entries set rate_per_unit = 1 where id = $1`, [entry.id])),
     ).rejects.toThrow(/permission denied/);
+    // Shared catalogue: a teammate may void it too.
     await expect(
-      asUser(db, userB, (tx) => tx.query(`select public.void_vendor_rate_entry($1, 'wrong')`, [entry.id])),
-    ).rejects.toThrow(/not found/);
+      asUser(db, userB, async (tx) => {
+        await tx.query(`select public.void_vendor_rate_entry($1, 'wrong')`, [entry.id]);
+        throw new Error(ROLLBACK);
+      }),
+    ).rejects.toThrow(ROLLBACK);
     await expect(
       asUser(db, userA, (tx) => tx.query(`select public.void_vendor_rate_entry($1, '  ')`, [entry.id])),
     ).rejects.toThrow(/reason is required/);
@@ -453,11 +477,11 @@ describe('elements: rate history, update RPC, rate limit', () => {
     expect(logs.rows.every((r) => r.change_type === 'master_rate')).toBe(true);
   });
 
-  it('update_element cannot touch another user\'s element', async () => {
+  it("update_element works on a teammate's element", async () => {
     const id = await asUser(db, userA, (tx) => newElement(tx, 'Anchor', 15000));
-    await expect(
-      asUser(db, userB, (tx) => tx.query(`select public.update_element($1, 'Hacked', null, 1, null, null, null)`, [id])),
-    ).rejects.toThrow(/not found/);
+    await asUser(db, userB, (tx) => tx.query(`select public.update_element($1, 'Anchor', null, 16000, null, null, null)`, [id]));
+    const row = await one<{ r: string }>(db, `select default_rate r from public.elements where id = $1`, [id]);
+    expect(Number(row.r)).toBe(16000);
   });
 
   it('users cannot write rate history directly', async () => {
@@ -476,7 +500,7 @@ describe('elements: rate history, update RPC, rate limit', () => {
     await asUser(db, userA, (tx) => newElement(tx, 'LED Wall', 32000));
     await expect(
       asUser(db, userA, (tx) => tx.query(`update public.elements set is_active = true where id = $1`, [id])),
-    ).rejects.toThrow(/duplicate key/);
+    ).rejects.toMatchObject({ code: '23505' });
   });
 
   it('limits element writes per user', async () => {
@@ -568,21 +592,18 @@ describe('packages: save_package RPC and summaries', () => {
     expect(after.n).toBe(before.n);
   });
 
-  it("cannot include another user's element or edit another user's package", async () => {
-    const otherElement = await asUser(db, userB, (tx) => newElement(tx, 'B Only Element', 100));
-    await expect(
-      asUser(db, userA, async (tx) => save(tx, null, [{ element_id: otherElement, default_qty: 1 }], { tier: await tierId(tx) })),
-    ).rejects.toThrow(/foreign key/);
-
-    const pkgA = await asUser(db, userA, async (tx) => {
-      const e = await newElement(tx, 'A Pkg Only', 1);
-      return (await save(tx, null, [{ element_id: e, default_qty: 1 }], { tier: await tierId(tx), name: 'A Private' })).id;
-    });
-    await expect(
-      asUser(db, userB, async (tx) => save(tx, pkgA, [{ element_id: otherElement, default_qty: 1 }], { tier: await tierId(tx) })),
-    ).rejects.toThrow(/not found/);
-    const seen = await asUser(db, userB, (tx) => tx.query(`select id from public.package_summaries where id = $1`, [pkgA]));
-    expect(seen.rows).toEqual([]);
+  it("can use a teammate's element and edit a teammate's package", async () => {
+    const otherElement = await asUser(db, userB, (tx) => newElement(tx, 'B Shared Element', 100));
+    const pkgA = await asUser(db, userA, async (tx) =>
+      (await save(tx, null, [{ element_id: otherElement, default_qty: 1 }], { tier: await tierId(tx), name: 'A Team Package' })).id,
+    );
+    await asUser(db, userB, async (tx) =>
+      save(tx, pkgA, [{ element_id: otherElement, default_qty: 3 }], { tier: await tierId(tx), name: 'A Team Package' }),
+    );
+    const seen = await asUser(db, userB, (tx) =>
+      one<{ element_count: number; elements_total: string }>(tx, `select element_count, elements_total from public.package_summaries where id = $1`, [pkgA]),
+    );
+    expect({ ...seen, elements_total: Number(seen.elements_total) }).toEqual({ element_count: 1, elements_total: 300 });
   });
 
   it('archived elements can stay in a package but cannot be newly added', async () => {
@@ -776,7 +797,7 @@ describe('save_quote RPC', () => {
     await expect(attempt((p) => ((p.guest as Record<string, unknown>).sub_venue_id = null))).resolves.toBeUndefined();
   });
 
-  it("cannot use another user's package, element or options, or edit their quote", async () => {
+  it("can use a teammate's element, but not their options or their quote", async () => {
     const theirs = await asUser(db, userB, async (tx) => {
       const e = await newElement(tx, 'B Quote Element', 100);
       const fn = await one<{ id: string }>(tx, `select id from public.function_options where name = 'Wedding'`);
@@ -786,7 +807,16 @@ describe('save_quote RPC', () => {
       asUser(db, userA, async (tx) => {
         const s = await setup(tx);
         const p = s.payload();
-        (p.lines as { element_id: string }[]).push({ element_id: theirs.e, qty: 1, rate: 1, included: true } as never);
+        (p.lines as { element_id: string }[]).push({ element_id: theirs.e, qty: 1, rate: 100, included: true } as never);
+        await saveQuote(tx, p);
+        throw new Error(ROLLBACK);
+      }),
+    ).rejects.toThrow(ROLLBACK);
+    await expect(
+      asUser(db, userA, async (tx) => {
+        const s = await setup(tx);
+        const p = s.payload();
+        (p.lines as { element_id: string }[]).push({ element_id: crypto.randomUUID(), qty: 1, rate: 1, included: true } as never);
         await saveQuote(tx, p);
       }),
     ).rejects.toThrow(/no longer available/);
@@ -954,7 +984,7 @@ describe('save_quote with several packages (0013)', () => {
     ).rejects.toThrow(/at least one element/);
   });
 
-  it("refuses another user's package", async () => {
+  it("accepts a teammate's package, refuses a missing one", async () => {
     const theirPkg = await asUser(db, userB, async (tx) => {
       const e = await newElement(tx, 'B MP Element', 1);
       const tier = await tierId(tx);
@@ -963,10 +993,16 @@ describe('save_quote with several packages (0013)', () => {
         JSON.stringify([{ element_id: e, default_qty: 1 }]),
       ])).id;
     });
+    const id = await asUser(db, userC, async (tx) => {
+      const s = await twoPackages(tx);
+      return save(tx, { guest: s.guest, packages: [{ package_id: theirPkg, lines: [{ element_id: s.arch, qty: 1, rate: 1 }] }] });
+    });
+    const owner = await one<{ owner_id: string; package_name: string }>(db, `select owner_id, package_name from public.quotes where id = $1`, [id]);
+    expect(owner).toEqual({ owner_id: userC, package_name: 'B MP' }); // the quote is still C's own
     await expect(
       asUser(db, userC, async (tx) => {
         const s = await twoPackages(tx);
-        await save(tx, { guest: s.guest, packages: [{ package_id: theirPkg, lines: [{ element_id: s.arch, qty: 1, rate: 1 }] }] });
+        await save(tx, { guest: s.guest, packages: [{ package_id: crypto.randomUUID(), lines: [{ element_id: s.arch, qty: 1, rate: 1 }] }] });
       }),
     ).rejects.toThrow(/Choose the package again/);
   });
@@ -1242,15 +1278,16 @@ describe('deleting elements and packages (0015)', () => {
     });
   });
 
-  it("user B cannot delete user D's package", async () => {
+  it("user B can delete user D's package", async () => {
     const pkg = await asUser(db, userD, async (tx) => {
-      const el = await newElement(tx, 'Private El', 1);
-      return (await one<{ id: string }>(tx, `select public.save_package(null, 'Private Pkg', $1, null, null, null, null, true, $2::jsonb) as id`, [
+      const el = await newElement(tx, 'Team El', 1);
+      return (await one<{ id: string }>(tx, `select public.save_package(null, 'Team Pkg', $1, null, null, null, null, true, $2::jsonb) as id`, [
         await tierId(tx),
         JSON.stringify([{ element_id: el, default_qty: 1 }]),
       ])).id;
     });
-    await expect(asUser(db, userB, (tx) => tx.query(`select public.delete_package($1)`, [pkg]))).rejects.toThrow(/not found/);
+    await asUser(db, userB, (tx) => tx.query(`select public.delete_package($1)`, [pkg]));
+    expect((await db.query(`select id from public.packages where id = $1`, [pkg])).rows).toEqual([]);
   });
 });
 
@@ -1298,9 +1335,9 @@ describe('vendor_rate_history view (trend)', () => {
     expect(rows.rows[0]).toMatchObject({ vendor_name: 'Trend Vendor', element_name: 'Trend Fruits' });
   });
 
-  it("is isolated per user and closed to anon", async () => {
+  it("is shared with the team and closed to anon", async () => {
     const seen = await asUser(db, userB, (tx) => tx.query(`select id from public.vendor_rate_history where element_name = 'Trend Fruits'`));
-    expect(seen.rows).toEqual([]);
+    expect(seen.rows).toHaveLength(6);
     await expect(asAnon(db, (tx) => tx.query(`select * from public.vendor_rate_history`))).rejects.toThrow(/permission denied/);
   });
 });
@@ -1332,9 +1369,12 @@ describe('rate limiting', () => {
 });
 
 describe('storage (per-user folders)', () => {
-  it('lets a user write only inside their own folder', async () => {
+  it('lets a user write only inside their own folder; catalogue photos are readable by the team', async () => {
     await asUser(db, userA, (tx) =>
       tx.query(`insert into storage.objects (bucket_id, name) values ('element-images', $1)`, [`${userA}/elements/arch.webp`]),
+    );
+    await asUser(db, userA, (tx) =>
+      tx.query(`insert into storage.objects (bucket_id, name) values ('brand', $1)`, [`${userA}/logo.webp`]),
     );
     await expect(
       asUser(db, userB, (tx) =>
@@ -1342,7 +1382,7 @@ describe('storage (per-user folders)', () => {
       ),
     ).rejects.toThrow(/row-level security/);
     const seen = await asUser(db, userB, (tx) => tx.query(`select name from storage.objects`));
-    expect(seen.rows).toEqual([]);
+    expect(seen.rows).toEqual([{ name: `${userA}/elements/arch.webp` }]); // brand files stay private
   });
 });
 
@@ -1521,18 +1561,26 @@ describe('package functions (0024)', () => {
     expect(res.cleared).toBe(0);
   });
 
-  it("can't tag another user's package or use another user's function", async () => {
+  it("matches a teammate's tag by function name, but can't use their function id", async () => {
     const aFn = await asUser(db, userA, (tx) => one<{ id: string }>(tx, `select id from public.function_options where name = 'Sangeet'`).then((r) => r.id));
+    const pkg = await asUser(db, userA, async (tx) => {
+      const el = await newElement(tx, `Tag El ${Math.random()}`);
+      const id = (await one<{ id: string }>(tx, `select public.save_package(null, 'A Sangeet Tagged', $1, null, null, null, null, true, $2::jsonb) as id`, [
+        await tierId(tx),
+        JSON.stringify([{ element_id: el, default_qty: 1 }]),
+      ])).id;
+      await tx.query(`select public.set_package_functions($1, $2::uuid[])`, [id, [aFn]]);
+      return id;
+    });
+    // B's own "Sangeet" (a different id) puts A's tagged package first.
+    const forB = await asUser(db, userB, async (tx) => {
+      const bFn = await one<{ id: string }>(tx, `select id from public.function_options where name = 'Sangeet'`);
+      return tx.query<{ id: string; for_function: boolean }>(`select id, for_function from public.studio_packages($1, 0, 50)`, [bFn.id]);
+    });
+    expect(forB.rows.find((r) => r.id === pkg)?.for_function).toBe(true);
     await expect(
-      asUser(db, userB, async (tx) => {
-        const pkg = await one<{ id: string }>(tx, `select id from public.packages limit 1`);
-        return tx.query(`select public.set_package_functions($1, $2::uuid[])`, [pkg.id, [aFn]]);
-      }),
+      asUser(db, userB, (tx) => tx.query(`select public.set_package_functions($1, $2::uuid[])`, [pkg, [aFn]])),
     ).rejects.toThrow(/foreign key/);
-    const aPkg = await asUser(db, userA, (tx) => tx.query<{ id: string }>(`select id from public.packages limit 1`));
-    if (aPkg.rows[0]) {
-      await expect(asUser(db, userB, (tx) => tx.query(`select public.set_package_functions($1, '{}')`, [aPkg.rows[0]!.id]))).rejects.toThrow(/not found/);
-    }
   });
 });
 
@@ -1573,4 +1621,15 @@ describe('landing photo (0028)', () => {
     const r = await asUser(db, userB, (tx) => tx.query(`update public.profiles set hero_image_path = 'x' where id = $1`, [userA]));
     expect(r.affectedRows ?? 0).toBe(0);
   });
+});
+
+describe('re-running migrations with shared data (0030)', () => {
+  it('still works when quotes and packages point at teammates’ rows', async () => {
+    const cross = await one<{ n: number }>(
+      db,
+      `select count(*)::int n from public.quote_packages qp join public.packages p on p.id = qp.package_id where p.owner_id <> qp.owner_id`,
+    );
+    expect(cross.n).toBeGreaterThan(0);
+    await expect(applyMigrations(db)).resolves.toBeUndefined();
+  }, 60_000);
 });

@@ -365,7 +365,7 @@ export function CustomiseStep({ onBack, onDone }: { onBack: () => void; onDone: 
   const finalTotal = roundMoney(summary.total);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="min-w-0 space-y-6">
         <StepHeading step="customise" />
         <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-stage-900/70 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">

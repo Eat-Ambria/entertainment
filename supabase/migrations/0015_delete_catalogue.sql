@@ -12,25 +12,32 @@
 
 -- ---------- Keep history rows when the element/package is deleted -------------
 -- Composite FKs: null only the id column (owner_id stays) — needs PostgreSQL 15+.
-alter table public.quote_items drop constraint if exists quote_items_owner_id_element_id_fkey;
-alter table public.quote_items add constraint quote_items_owner_id_element_id_fkey
-  foreign key (owner_id, element_id) references public.elements (owner_id, id) on delete set null (element_id);
+-- Skipped once 0030 (shared catalogue) has replaced them with plain id FKs.
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'packages_tier_id_fkey') then
+    return;
+  end if;
+  alter table public.quote_items drop constraint if exists quote_items_owner_id_element_id_fkey;
+  alter table public.quote_items add constraint quote_items_owner_id_element_id_fkey
+    foreign key (owner_id, element_id) references public.elements (owner_id, id) on delete set null (element_id);
 
-alter table public.rate_change_logs drop constraint if exists rate_change_logs_owner_id_element_id_fkey;
-alter table public.rate_change_logs add constraint rate_change_logs_owner_id_element_id_fkey
-  foreign key (owner_id, element_id) references public.elements (owner_id, id) on delete set null (element_id);
+  alter table public.rate_change_logs drop constraint if exists rate_change_logs_owner_id_element_id_fkey;
+  alter table public.rate_change_logs add constraint rate_change_logs_owner_id_element_id_fkey
+    foreign key (owner_id, element_id) references public.elements (owner_id, id) on delete set null (element_id);
 
-alter table public.rate_change_logs drop constraint if exists rate_change_logs_owner_id_package_id_fkey;
-alter table public.rate_change_logs add constraint rate_change_logs_owner_id_package_id_fkey
-  foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
+  alter table public.rate_change_logs drop constraint if exists rate_change_logs_owner_id_package_id_fkey;
+  alter table public.rate_change_logs add constraint rate_change_logs_owner_id_package_id_fkey
+    foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
 
-alter table public.quotes drop constraint if exists quotes_owner_id_package_id_fkey;
-alter table public.quotes add constraint quotes_owner_id_package_id_fkey
-  foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
+  alter table public.quotes drop constraint if exists quotes_owner_id_package_id_fkey;
+  alter table public.quotes add constraint quotes_owner_id_package_id_fkey
+    foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
 
-alter table public.quote_packages drop constraint if exists quote_packages_owner_id_package_id_fkey;
-alter table public.quote_packages add constraint quote_packages_owner_id_package_id_fkey
-  foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
+  alter table public.quote_packages drop constraint if exists quote_packages_owner_id_package_id_fkey;
+  alter table public.quote_packages add constraint quote_packages_owner_id_package_id_fkey
+    foreign key (owner_id, package_id) references public.packages (owner_id, id) on delete set null (package_id);
+end $$;
 
 -- package_elements → elements and vendor_rate_entries → elements stay RESTRICT (they block).
 

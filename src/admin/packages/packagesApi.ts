@@ -1,7 +1,8 @@
 /**
- * Packages data access (Supabase). RLS limits everything to the signed-in user's rows.
+ * Packages data access (Supabase). Packages are shared by the whole team (0030).
  * Saving goes through the save_package RPC so the package and its element mapping are
  * written in one transaction; its functions (optional, 0024) via set_package_functions.
+ * Function tags are matched by name, since each user has their own function list.
  */
 import { requireSupabase } from '@/lib/supabase';
 import { escapeLike } from '@/lib/dbErrors';
@@ -109,16 +110,15 @@ export const packagesApi = {
     if (rows.length) {
       const fns = await requireSupabase()
         .from('package_functions')
-        .select('package_id, function_options!package_functions_function_fkey(name)')
+        .select('package_id, function_name')
         .in(
           'package_id',
           rows.map((r) => r.id),
         );
       if (fns.error) throw fns.error;
       for (const f of fns.data ?? []) {
-        const fo = f.function_options as unknown as { name: string } | { name: string }[] | null;
-        const name = Array.isArray(fo) ? fo[0]?.name : fo?.name;
-        if (name) rows.find((r) => r.id === f.package_id)?.functions.push(name);
+        const row = rows.find((r) => r.id === f.package_id);
+        if (f.function_name && row && !row.functions.includes(f.function_name)) row.functions.push(f.function_name);
       }
       rows.forEach((r) => r.functions.sort());
     }
@@ -127,23 +127,27 @@ export const packagesApi = {
 
   async get(id: string): Promise<PackageDetail> {
     const sb = requireSupabase();
-    const [pkg, items, fns] = await Promise.all([
+    const [pkg, items, fns, own] = await Promise.all([
       sb
         .from('packages')
         .select('id, name, tier_id, display_price, description, image_path, video_url, is_active, updated_at')
         .eq('id', id)
         .single(),
       sb.from('package_elements').select('element_id, default_qty').eq('package_id', id).order('sort_order'),
-      sb.from('package_functions').select('function_id').eq('package_id', id),
+      sb.from('package_functions').select('function_name').eq('package_id', id),
+      sb.from('function_options').select('id, name'),
     ]);
     if (pkg.error) throw pkg.error;
     if (items.error) throw items.error;
     if (fns.error) throw fns.error;
+    if (own.error) throw own.error;
+    // Tags may come from a teammate's function list: pick the signed-in user's function of the same name.
+    const tagged = new Set((fns.data ?? []).map((f) => (f.function_name as string | null)?.toLowerCase()));
     return {
       ...(pkg.data as unknown as PackageDetail),
       display_price: num(pkg.data.display_price),
       items: (items.data ?? []).map((i) => ({ element_id: i.element_id, default_qty: Number(i.default_qty) })),
-      function_ids: (fns.data ?? []).map((f) => f.function_id as string),
+      function_ids: (own.data ?? []).filter((f) => tagged.has(f.name.toLowerCase())).map((f) => f.id as string),
     };
   },
 

@@ -65,7 +65,8 @@ begin
 
   insert into public.tiers (owner_id, name, sort_order)
   values (p_owner, 'Standard', 1), (p_owner, 'Premium', 2)
-  on conflict (owner_id, lower(name)) do nothing;
+  on conflict do nothing; -- any conflict: tiers are one shared list since 0030
+
 end;
 $$;
 

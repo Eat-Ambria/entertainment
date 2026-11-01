@@ -39,7 +39,7 @@ export default function StudioHomePage() {
       variants={listStagger}
       initial="hidden"
       animate="show"
-      className="grid min-h-[calc(100svh-8.5rem)] items-center gap-12 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] xl:gap-12 lg:pl-10 xl:pl-20"
+      className="grid min-h-[calc(100svh-8.5rem)] grid-cols-[minmax(0,1fr)] items-center gap-12 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] xl:gap-12 lg:pl-10 xl:pl-20"
     >
       <div className="max-w-3xl">
         <m.p
@@ -49,11 +49,11 @@ export default function StudioHomePage() {
           {formatDate(new Date())} · {business}
         </m.p>
         <m.h1 variants={lines} className="mt-7 font-display font-normal leading-[1.02] tracking-tight text-ivory">
-          <Line className="text-6xl sm:text-7xl xl:text-8xl">Extraordinary</Line>
-          <Line className="pr-3 text-6xl sm:text-7xl xl:text-8xl">
+          <Line className="text-[clamp(2.3rem,11.5vw,3.75rem)] sm:text-7xl xl:text-8xl">Extraordinary</Line>
+          <Line className="pr-3 text-[clamp(2.3rem,11.5vw,3.75rem)] sm:text-7xl xl:text-8xl">
             <em className="gold-shimmer">Entertainment.</em>
           </Line>
-          <Line className="mt-2 text-4xl sm:text-5xl xl:text-6xl">Unforgettable Celebrations</Line>
+          <Line className="mt-2 text-[clamp(1.55rem,7.4vw,2.25rem)] sm:text-5xl xl:text-6xl">Unforgettable Celebrations</Line>
         </m.h1>
         <m.span
           variants={{ hidden: { scaleX: 0 }, show: { scaleX: 1, transition: { duration: 0.8, delay: 0.5, ease: EASE } } }}
@@ -75,7 +75,8 @@ export default function StudioHomePage() {
         </m.div>
       </div>
 
-      <m.div variants={riseItem}>
+      {/* min-w-0: on phones the card must never be wider than the screen. */}
+      <m.div variants={riseItem} className="min-w-0">
         <FeaturedReel paths={profile?.performer_photo_paths ?? []} />
       </m.div>
     </m.section>

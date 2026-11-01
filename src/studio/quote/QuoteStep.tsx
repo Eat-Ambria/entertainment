@@ -117,7 +117,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
       <QuotationHero data={doc} />
 
       {/* Quotation on the left, actions in a side panel that stays in view (stacks below on phones). */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_20rem]">
         <m.div ref={docRef} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={smooth} className="min-w-0 scroll-mt-40">
           <QuoteDocument data={doc} />
         </m.div>

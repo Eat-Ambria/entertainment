@@ -194,16 +194,17 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
   if (options.isError || !opts) return <FormAlert>We couldn't load the event options. Please refresh the page.</FormAlert>;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-      <section className="space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <section className="min-w-0 space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-4 sm:p-5 text-ivory shadow-2xl shadow-black/50">
         {/* Lookup */}
         <section aria-label="Search" className="space-y-2.5 rounded-xl border border-white/10 bg-white/4 p-4">
           <div className="flex items-center gap-2">
             <Icon name="search" size={16} className="text-brand-300" />
             <h2 className="text-sm font-semibold text-ivory">Find the guest</h2>
           </div>
-          <form onSubmit={search} className="flex flex-col gap-2 sm:flex-row" role="search">
-            <label className="relative flex-1">
+          {/* Phones: the box on its own line, Search and Clear side by side under it. */}
+          <form onSubmit={search} className="flex flex-wrap gap-2 sm:flex-nowrap" role="search">
+            <label className="relative w-full min-w-0 sm:w-auto sm:flex-1">
               <span className="sr-only">Search guests</span>
               <Icon name="search" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ivory/40" />
               <input
@@ -214,11 +215,11 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
                 className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-ivory outline-none transition-colors duration-150 scheme-dark placeholder:text-ivory/35 hover:bg-white/7 focus:border-brand-300 focus:ring-2 focus:ring-brand-300/25"
               />
             </label>
-            <Button type="submit" variant="gold" loading={searching}>
+            <Button type="submit" variant="gold" loading={searching} className="flex-1 sm:flex-none">
               Search
             </Button>
             {(picked.ref || query) && (
-              <Button type="button" variant="outline-light" onClick={clearAll}>
+              <Button type="button" variant="outline-light" onClick={clearAll} className="flex-1 sm:flex-none">
                 Clear
               </Button>
             )}
@@ -271,7 +272,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
 
           <fieldset className="space-y-3">
             <legend className="font-mono text-xs uppercase tracking-[0.22em] text-brand-300">Guest</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3.5 sm:grid-cols-2 sm:gap-4">
               <TextField tone="dark" label="Guest name" value={form.guestName} onChange={set('guestName')} error={errors.guestName} autoComplete="name" />
               <TextField
                 tone="dark"
@@ -291,7 +292,8 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
 
           <fieldset className="space-y-3 border-t border-white/10 pt-4">
             <legend className="float-left mb-3 w-full font-mono text-xs uppercase tracking-[0.22em] text-brand-300">Event</legend>
-            <div className="clear-both grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Two per row even on phones (venue gets the full row for long names) to keep the form short. */}
+            <div className="clear-both grid grid-cols-2 gap-x-3 gap-y-3.5 sm:gap-4 lg:grid-cols-3">
               <SelectField
                 tone="dark"
                 label="Function"
@@ -313,6 +315,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
               <SelectField
                 tone="dark"
                 label="Venue"
+                className="col-span-2 lg:col-span-1"
                 placeholder="Choose venue"
                 value={form.venueId}
                 onChange={set('venueId')}
@@ -322,7 +325,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
               <SelectField
                 tone="dark"
                 label="Sub-venue"
-                placeholder={subVenues.length ? 'Optional' : 'None for this venue'}
+                placeholder={subVenues.length ? 'Optional' : 'None'}
                 value={form.subVenueId}
                 onChange={set('subVenueId')}
                 disabled={!subVenues.length}

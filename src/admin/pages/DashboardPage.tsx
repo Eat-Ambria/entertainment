@@ -253,7 +253,8 @@ export default function DashboardPage() {
         </div>
       </Rise>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      {/* minmax(0,1fr): long guest/venue names truncate instead of widening the cards past the screen. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
         {/* Upcoming events */}
         <Rise order={3} label="Upcoming events" className={`${CARD} p-5 sm:p-6`}>
           <ListHeader icon="calendar" title="Upcoming events" to={LEDGER} />
