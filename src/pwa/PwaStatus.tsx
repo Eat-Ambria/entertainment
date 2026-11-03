@@ -3,21 +3,27 @@
  * an offline banner. The app needs the network for data, so we never claim offline support.
  * Updates are looked for every few minutes and whenever the tab comes back into view, so
  * people are offered a new deploy quickly; "Reload" switches to it (drafts are kept).
+ * "Reload" activates the waiting worker and reloads the page itself: an update found by the
+ * periodic check is "external" to workbox-window, which then never reloads on its own.
  */
+import { useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Icon } from '@/components/ui/Icon';
 import { useOnline } from './hooks';
 
 const CHECK_FOR_UPDATES_MS = 5 * 60 * 1000;
+/** If the new worker hasn't taken over by then, reload anyway (the next load picks it up). */
+const RELOAD_FALLBACK_MS = 3000;
 
 export function PwaStatus() {
   const online = useOnline();
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_url, registration) {
       if (!registration) return;
+      registrationRef.current = registration;
       const check = () => void registration.update().catch(() => undefined);
       setInterval(check, CHECK_FOR_UPDATES_MS);
       // Coming back to the tab (or the installed app) checks straight away.
@@ -27,6 +33,20 @@ export function PwaStatus() {
       window.addEventListener('focus', check);
     },
   });
+
+  function reload() {
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      window.location.reload();
+    };
+    const waiting = registrationRef.current?.waiting;
+    if (!waiting) return go();
+    navigator.serviceWorker?.addEventListener('controllerchange', go, { once: true });
+    waiting.postMessage({ type: 'SKIP_WAITING' });
+    window.setTimeout(go, RELOAD_FALLBACK_MS);
+  }
 
   return (
     <>
@@ -50,7 +70,7 @@ export function PwaStatus() {
           </div>
           <button
             type="button"
-            onClick={() => void updateServiceWorker(true)}
+            onClick={reload}
             className="shrink-0 rounded-xl bg-linear-to-b from-brand-300 to-brand-400 px-3.5 py-2 text-sm font-semibold text-stage-950 transition duration-150 hover:brightness-105"
           >
             Reload

@@ -43,8 +43,11 @@ describe('PwaStatus', () => {
     sw.needRefresh = true;
     render(<PwaStatus />);
     expect(screen.getByText('A new version of the app is available.')).toBeInTheDocument();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
     await userEvent.click(screen.getByRole('button', { name: 'Reload' }));
-    expect(sw.updateServiceWorker).toHaveBeenCalledWith(true);
+    expect(reload).toHaveBeenCalled();
+    vi.unstubAllGlobals();
     await userEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(sw.setNeedRefresh).toHaveBeenCalledWith(false);
   });
