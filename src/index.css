@@ -466,3 +466,11 @@ html.no-scrollbar::-webkit-scrollbar {
 .ws-theme .text-slate-300 {
   color: #c9a46a;
 }
+
+/* Scrolls without showing a scrollbar (Workspace sidebar). */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

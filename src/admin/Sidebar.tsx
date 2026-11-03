@@ -53,7 +53,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <Icon name="close" />
           </button>
         </div>
-        <nav className="relative flex-1 overflow-y-auto px-4 pb-6" aria-label="Main">
+        <nav className="hide-scrollbar relative flex-1 overflow-y-auto px-4 pb-6" aria-label="Main">
           {NAV_SECTIONS.map((section) => (
             <div key={section.key} className="border-t border-white/10 pt-5 pb-4 first:border-t-0 first:pt-3">
               <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.22em] text-ivory/45">
