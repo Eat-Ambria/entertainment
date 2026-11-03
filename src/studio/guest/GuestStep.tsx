@@ -1,7 +1,8 @@
 /**
  * Guest Studio step 1 — Guest & Event.
  * One search box looks in LMS contracts and leads together; each result is tagged Contract
- * or Lead. Not found? Just fill the form — it's a manual (new) guest. The form is always
+ * or Lead. The user's own saved quotes for manual guests are listed too ("Saved"): Use fills
+ * the form for a new quote, Edit reopens a draft. Not found? Just fill the form — it's a manual (new) guest. The form is always
  * there to review/correct (function lives here — no separate function step). Saves to the draft.
  * Shown in front of the guest: other guests' phone numbers are masked in search results,
  * and at most 5 results are listed.
@@ -21,10 +22,14 @@ import { m } from 'motion/react';
 import { listStagger, riseItem } from '@/lib/motion';
 import { formatDate } from '@/lib/date';
 import { maskPhone } from '@/lib/phone';
-import { useQuoteDraft, type GuestSource } from '../quoteDraft';
+import { EMPTY_DRAFT, useQuoteDraft, type GuestSource } from '../quoteDraft';
 import { LiveEventCard } from './LiveEventCard';
 import { FIELD_MAP, getPath, venueText } from '../../../supabase/functions/_shared/lms';
 import { getGuestAdapter, lookupErrorMessage, searchAllGuests, type GuestLookupResult } from './guestSources';
+import { savedGuestsApi, type SavedGuestQuote } from '@/data/savedGuests';
+import { useEditQuote } from '../quote/useEditQuote';
+import { QuoteNotEditableError, quoteEditApi } from '@/data/quoteEdit';
+import { dbErrorMessage } from '@/lib/dbErrors';
 import {
   EMPTY_GUEST_FORM,
   formFromDraft,
@@ -34,6 +39,8 @@ import {
   type GuestForm,
   type GuestFormErrors,
 } from './guestValidation';
+
+type LmsFailed = Awaited<ReturnType<typeof searchAllGuests>>['failed'];
 
 const SOURCE_TAG: Record<GuestLookupResult['source'], { label: string; cls: string }> = {
   lms_contract: { label: 'Contract', cls: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/30' },
@@ -59,6 +66,9 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<GuestLookupResult[] | null>(null);
+  const [savedResults, setSavedResults] = useState<SavedGuestQuote[]>([]); // own quotes for manual guests
+  const edit = useEditQuote();
+  const [copiedFrom, setCopiedFrom] = useState<string | null>(null); // quote no. whose packages were loaded
   const [partial, setPartial] = useState<string | null>(null); // e.g. leads couldn't be searched
   const [searchError, setSearchError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -91,6 +101,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     }
     if (value.trim() === '') {
       setResults(null);
+      setSavedResults([]);
       setPartial(null);
       setSearchError(null);
     }
@@ -104,14 +115,23 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
       setSearching(true);
       setSearchError(null);
       setPartial(null);
+      // Saved manual guests are looked up alongside LMS; either may fail without hiding the other.
+      const ownQuotes = savedGuestsApi.search(q).catch(() => [] as SavedGuestQuote[]);
       try {
-        const r = await searchAllGuests(adapter, q);
+        const r = await searchAllGuests(adapter, q).catch(async (err: unknown) => {
+          if ((await ownQuotes).length) return { results: [] as GuestLookupResult[], failed: ['contract', 'lead'] as LmsFailed };
+          throw err;
+        });
+        const own = await ownQuotes;
         if (run !== lastRun.current) return;
         setResults(r.results);
-        if (r.failed.length) setPartial(`${r.failed[0] === 'lead' ? 'Leads' : 'Contracts'} couldn't be searched right now — showing the rest.`);
+        setSavedResults(own);
+        if (r.failed.length === 2) setPartial("LMS couldn't be searched right now — showing your saved quotes.");
+        else if (r.failed.length) setPartial(`${r.failed[0] === 'lead' ? 'Leads' : 'Contracts'} couldn't be searched right now — showing the rest.`);
       } catch (err) {
         if (run !== lastRun.current) return;
         setResults(null);
+        setSavedResults([]);
         setSearchError(lookupErrorMessage(err, 'any'));
       } finally {
         if (run === lastRun.current) setSearching(false);
@@ -167,7 +187,32 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     setForm(next);
     setPicked({ source: r.source, ref: r.sourceRef, raw: r.raw });
     setResults(null);
+    setSavedResults([]);
     setErrors({});
+  }
+
+  // A saved manual guest: copy that quote — guest, event, packages and elements — into a new
+  // quote (saving creates a new one). A past event date is left blank for the new event.
+  async function pickSaved(s: SavedGuestQuote) {
+    setPicking(true);
+    setPickError(null);
+    try {
+      const { draft: copy, droppedLines } = await quoteEditApi.load(s.id, { asNew: true, today: todayIst() });
+      updateDraft(() => copy);
+      setForm(copy.guest ? formFromDraft(copy.guest) : s.form);
+      setPicked({ source: 'manual', ref: null, raw: null });
+      setCopiedFrom(s.quoteNo);
+      setResults(null);
+      setSavedResults([]);
+      setErrors({});
+      if (droppedLines > 0) {
+        setPickError(`${droppedLines} ${droppedLines === 1 ? 'element was' : 'elements were'} deleted and left out.`);
+      }
+    } catch (err) {
+      setPickError(err instanceof QuoteNotEditableError ? err.message : dbErrorMessage(err));
+    } finally {
+      setPicking(false);
+    }
   }
 
   // Search box's Clear: empties the search, the results and the filled form.
@@ -177,6 +222,11 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     setForm(EMPTY_GUEST_FORM);
     setErrors({});
     setPickError(null);
+    // Packages copied from a saved quote go too.
+    if (copiedFrom) {
+      updateDraft(() => EMPTY_DRAFT);
+      setCopiedFrom(null);
+    }
   }
 
   function onContinue(e: FormEvent) {
@@ -225,11 +275,11 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
             )}
           </form>
           <p className="text-[11px] text-ivory/45">
-            Searches booked contracts and enquiry leads together. Not found? Fill in the details below as a new guest.
+            Searches booked contracts, enquiry leads and your saved quotes together. Not found? Fill in the details below as a new guest.
           </p>
           {searchError && <FormAlert>{searchError}</FormAlert>}
           {partial && <p className="text-xs text-amber-300">{partial}</p>}
-          {results && results.length === 0 && (
+          {results && results.length === 0 && savedResults.length === 0 && (
             <p className="rounded-lg border border-dashed border-white/15 px-4 py-6 text-center text-sm text-ivory/55">
               No contract or lead matches. Try another spelling or the phone number — or fill in the details below as a new guest.
             </p>
@@ -258,14 +308,49 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
               ))}
             </m.ul>
           )}
+          {savedResults.length > 0 && (
+            <m.ul variants={listStagger} initial="hidden" animate="show" className="max-h-56 divide-y divide-white/10 overflow-y-auto rounded-xl border border-white/10 bg-stage-950/60" aria-label="Saved quotes">
+              {savedResults.map((s) => (
+                <m.li variants={riseItem} key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors duration-200 hover:bg-white/5">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2">
+                      <span className="truncate font-medium text-ivory">{s.guestName}</span>
+                      <span className="shrink-0 rounded-full bg-sky-400/10 px-2 py-0.5 text-xs font-semibold text-sky-300 ring-1 ring-sky-400/30">Saved</span>
+                    </p>
+                    <p className="truncate text-sm text-ivory/55">
+                      {[s.quoteNo, s.phone && maskPhone(s.phone), s.functionName, s.eventDate && formatDate(s.eventDate), s.venueName]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    {s.status === 'draft' && (
+                      <Button variant="outline-light" disabled={edit.busy} onClick={() => void edit.open(s.id)} aria-label={`Edit ${s.quoteNo}`}>
+                        Edit
+                      </Button>
+                    )}
+                    <Button variant="outline-light" disabled={picking} onClick={() => void pickSaved(s)} aria-label={`Use ${s.guestName} ${s.quoteNo}`}>
+                      Use
+                    </Button>
+                  </div>
+                </m.li>
+              ))}
+            </m.ul>
+          )}
         </section>
 
         {/* Form */}
         <form id={formId} onSubmit={onContinue} noValidate className="space-y-4">
-          {!picked.ref && (
+          {!picked.ref && !copiedFrom && (
             <p className="flex items-center gap-2 text-sm text-ivory/55">
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-ivory/75">Manual</span>
               New guest — enter the details yourself, or search above to fill them from LMS.
+            </p>
+          )}
+          {copiedFrom && (
+            <p className="flex items-start gap-2 rounded-lg border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-sm text-sky-200">
+              <Icon name="check" size={16} className="mt-0.5 shrink-0" />
+              Packages and elements from {copiedFrom} are loaded. Check the event details, then continue — this saves as a new quote.
             </p>
           )}
           {pickError && <p className="text-xs text-amber-300">{pickError}</p>}

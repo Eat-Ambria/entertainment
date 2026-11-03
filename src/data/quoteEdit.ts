@@ -1,6 +1,6 @@
 /**
  * Reopens a saved draft quote as a Guest Studio draft so it can be edited and
- * re-saved in place. Reads guest-safe columns only. Lines whose element was deleted are
+ * re-saved in place — or copies any saved quote into a new draft (asNew). Reads guest-safe columns only. Lines whose element was deleted are
  * dropped (reported back); a quote whose package was deleted can't be reopened.
  */
 import { requireSupabase } from '@/lib/supabase';
@@ -52,9 +52,16 @@ interface Row {
 
 let keySeq = 0;
 
-/** Pure: turns a saved quote into a draft. `currentRates` = element id → today's guest rate (for "Reset"). */
-export function draftFromSavedQuote(row: Row, currentRates: Map<string, number>): { draft: QuoteDraft; droppedLines: number } {
-  if (row.status !== 'draft') {
+/**
+ * Pure: turns a saved quote into a draft. `currentRates` = element id → today's guest rate (for "Reset").
+ * `asNew`: a copy for a NEW quote (any status; saving creates a new quote). A past event date is left blank.
+ */
+export function draftFromSavedQuote(
+  row: Row,
+  currentRates: Map<string, number>,
+  { asNew = false, today = '' }: { asNew?: boolean; today?: string } = {},
+): { draft: QuoteDraft; droppedLines: number } {
+  if (!asNew && row.status !== 'draft') {
     throw new QuoteNotEditableError('locked', `This quote is ${row.status} and can't be edited.`);
   }
   if (row.quote_packages.some((p) => !p.package_id)) {
@@ -101,7 +108,7 @@ export function draftFromSavedQuote(row: Row, currentRates: Map<string, number>)
         functionId: row.function_id ?? '',
         venueId: row.venue_id ?? '',
         subVenueId: row.sub_venue_id,
-        eventDate: row.event_date ?? '',
+        eventDate: asNew && (row.event_date ?? '') < today ? '' : (row.event_date ?? ''),
         sessionId: row.session_id ?? '',
       },
       packages,
@@ -111,12 +118,12 @@ export function draftFromSavedQuote(row: Row, currentRates: Map<string, number>)
         amount: toInput(Number(c.amount)),
       })),
       autoChargesOff: true, // keep the saved charges as they are
-      saved: { id: row.id, quoteNo: row.quote_no, status: 'draft' },
+      saved: asNew ? null : { id: row.id, quoteNo: row.quote_no, status: 'draft' },
     },
   };
 }
 
-async function load(id: string) {
+async function load(id: string, opts?: { asNew?: boolean; today?: string }) {
   const sb = requireSupabase();
   const { data, error } = await sb.from('quotes').select(COLUMNS).eq('id', id).single();
   if (error) throw error;
@@ -128,7 +135,7 @@ async function load(id: string) {
     if (els.error) throw els.error;
     for (const e of els.data ?? []) rates.set(e.id, Number(e.selling_rate));
   }
-  return draftFromSavedQuote(row, rates);
+  return draftFromSavedQuote(row, rates, opts);
 }
 
 /** Object so tests can mock the Supabase calls. */
