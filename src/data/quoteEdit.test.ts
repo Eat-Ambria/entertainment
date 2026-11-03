@@ -54,10 +54,14 @@ describe('draftFromSavedQuote', () => {
 
   it('refuses confirmed/cancelled quotes and quotes whose package was deleted', () => {
     expect(() => draftFromSavedQuote(row({ status: 'confirmed' }), new Map())).toThrow(QuoteNotEditableError);
-    expect(() => draftFromSavedQuote(row({ status: 'sent' }), new Map())).toThrow(QuoteNotEditableError); // legacy
     expect(() =>
       draftFromSavedQuote(row({ quote_packages: [{ id: 'qp1', package_id: null, package_name: 'Gone', package_tier: null, sort_order: 1 }] }), new Map()),
     ).toThrow(/package in this quote has been deleted/);
+  });
+
+  it('reopens a sent quote, and notes whose quote it is when it is a teammate’s', () => {
+    expect(draftFromSavedQuote(row({ status: 'sent' }), new Map()).draft.saved).toEqual({ id: 'q1', quoteNo: 'ENT-2026-00007', status: 'sent' });
+    expect(draftFromSavedQuote(row({ mine: false, owner_name: 'Rahul' }), new Map()).draft.saved).toMatchObject({ ownerName: 'Rahul' });
   });
 
   it('leaves missing option ids blank so the guest step asks again', () => {

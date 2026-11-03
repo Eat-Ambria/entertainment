@@ -1,9 +1,8 @@
 /**
  * Settings: branding (performer photos, shown to guests), business profile (name, contact line, LMS user
- * id) and account (sign-in phone, password). One card per section.
+ * id) and account (sign-in phone; password is changed from the user menu). One card per section.
  */
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import type { AuthState } from '@/auth/types';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -121,18 +120,10 @@ export default function SettingsPage() {
         </Section>
 
         <Section icon="lock" title="Account" description="How you sign in.">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <dl>
-              <dt className="text-sm text-slate-500">Mobile number</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">+91 {formatPhone(profile?.phone)}</dd>
-            </dl>
-            <Link
-              to="/change-password"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              <Icon name="lock" size={16} /> Change password
-            </Link>
-          </div>
+          <dl>
+            <dt className="text-sm text-slate-500">Mobile number</dt>
+            <dd className="mt-0.5 font-medium text-slate-900">+91 {formatPhone(profile?.phone)}</dd>
+          </dl>
         </Section>
       </div>
     </>

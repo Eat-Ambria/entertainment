@@ -75,7 +75,7 @@ export default function SavedQuotePage() {
           </Link>
         </div>
         <div className="flex flex-wrap gap-2">
-          {quote.data.status === 'draft' && (
+          {(quote.data.status === 'draft' || quote.data.status === 'sent') && (
             <Button variant="secondary" loading={edit.busy} onClick={() => void edit.open(quote.data!.id)}>
               <Icon name="edit" size={16} /> Edit quote
             </Button>

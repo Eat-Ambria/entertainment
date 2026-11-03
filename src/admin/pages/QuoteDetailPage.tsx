@@ -1,7 +1,8 @@
 /**
  * Quote detail (internal): the saved quotation as the guest sees it, plus actions, history
  * and the quote-specific rate overrides.
- * - Draft quotes can be edited (opens them in the Guest Studio).
+ * - Draft and sent quotes can be edited (opens them in the Guest Studio).
+ * - History also shows teammates who opened or edited this (manual) quote.
  * - Status moves forward only (draft → confirmed, any → cancelled); enforced by the database.
  */
 import { useState } from 'react';
@@ -64,7 +65,7 @@ export default function QuoteDetailPage() {
   const q = internal.data;
   const next = STATUS_FLOW[q.status];
 
-  const editable = q.status === 'draft';
+  const editable = q.status === 'draft' || q.status === 'sent';
 
   async function apply(status: QuoteStatus) {
     try {
@@ -82,6 +83,8 @@ export default function QuoteDetailPage() {
   }
 
   function historyLabel(h: (typeof q.history)[number]) {
+    if (h.action === 'viewed_by_other') return `Opened by ${h.by ?? 'a teammate'}`;
+    if (h.action === 'edited_by_other') return `Edited by ${h.by ?? 'a teammate'}`;
     if (h.action === 'edited') return 'Edited after sending';
     if (h.action === 'sent') return h.sentCount ? `Sent again (${h.sentCount}${ordinal(h.sentCount)} time)` : 'Sent again';
     return `${STATUS_LABEL[h.from as QuoteStatus] ?? h.from} → ${STATUS_LABEL[h.to as QuoteStatus] ?? h.to}`;
@@ -133,7 +136,7 @@ export default function QuoteDetailPage() {
           </section>
 
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Status history</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">History</h3>
             <ul className="mt-3 space-y-2 text-sm">
               {q.history.map((h, i) => (
                 <li key={i} className="flex justify-between gap-2">

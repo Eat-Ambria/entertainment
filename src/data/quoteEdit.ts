@@ -1,6 +1,8 @@
 /**
- * Reopens a saved draft quote as a Guest Studio draft so it can be edited and
- * re-saved in place — or copies any saved quote into a new draft (asNew). Reads guest-safe columns only. Lines whose element was deleted are
+ * Reopens a saved draft / sent quote as a Guest Studio draft so it can be edited and
+ * re-saved in place — or copies any saved quote into a new draft (asNew). Reads guest-safe
+ * columns only, through the team_quote RPC: own quotes, or a teammate's manual quote (it
+ * stays theirs; opening and saving it are logged). Lines whose element was deleted are
  * dropped (reported back); a quote whose package was deleted can't be reopened.
  */
 import { requireSupabase } from '@/lib/supabase';
@@ -13,13 +15,6 @@ export class QuoteNotEditableError extends Error {
     this.name = 'QuoteNotEditableError';
   }
 }
-
-// FK hints: quote_items links quotes and quote_packages (see src/data/quotes.ts).
-const COLUMNS = `id, quote_no, status, source, source_ref, guest_name, guest_phone,
-  function_id, venue_id, sub_venue_id, event_date, session_id,
-  quote_packages!quote_packages_owner_id_quote_id_fkey(id, package_id, package_name, package_tier, sort_order),
-  quote_items!quote_items_owner_id_quote_id_fkey(quote_package_id, element_id, element_name, unit, image_path, remarks, qty, rate, is_included, sort_order),
-  quote_charges!quote_charges_owner_id_quote_id_fkey(description, amount, sort_order)`;
 
 interface Row {
   id: string;
@@ -34,6 +29,9 @@ interface Row {
   sub_venue_id: string | null;
   event_date: string | null;
   session_id: string | null;
+  /** From team_quote: false = a teammate's quote. */
+  mine?: boolean;
+  owner_name?: string;
   quote_packages: { id: string; package_id: string | null; package_name: string; package_tier: string | null; sort_order: number }[];
   quote_items: {
     quote_package_id: string | null;
@@ -61,7 +59,7 @@ export function draftFromSavedQuote(
   currentRates: Map<string, number>,
   { asNew = false, today = '' }: { asNew?: boolean; today?: string } = {},
 ): { draft: QuoteDraft; droppedLines: number } {
-  if (!asNew && row.status !== 'draft') {
+  if (!asNew && row.status !== 'draft' && row.status !== 'sent') {
     throw new QuoteNotEditableError('locked', `This quote is ${row.status} and can't be edited.`);
   }
   if (row.quote_packages.some((p) => !p.package_id)) {
@@ -118,14 +116,21 @@ export function draftFromSavedQuote(
         amount: toInput(Number(c.amount)),
       })),
       autoChargesOff: true, // keep the saved charges as they are
-      saved: asNew ? null : { id: row.id, quoteNo: row.quote_no, status: 'draft' },
+      saved: asNew
+        ? null
+        : {
+            id: row.id,
+            quoteNo: row.quote_no,
+            status: row.status === 'sent' ? 'sent' : 'draft',
+            ...(row.mine === false && row.owner_name ? { ownerName: row.owner_name } : {}),
+          },
     },
   };
 }
 
 async function load(id: string, opts?: { asNew?: boolean; today?: string }) {
   const sb = requireSupabase();
-  const { data, error } = await sb.from('quotes').select(COLUMNS).eq('id', id).single();
+  const { data, error } = await sb.rpc('team_quote', { p_id: id });
   if (error) throw error;
   const row = data as unknown as Row;
   const ids = [...new Set(row.quote_items.map((i) => i.element_id).filter((x): x is string => Boolean(x)))];

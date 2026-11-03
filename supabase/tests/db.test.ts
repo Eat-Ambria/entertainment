@@ -1623,6 +1623,112 @@ describe('landing photo (0028)', () => {
   });
 });
 
+describe('team manual quotes (0031)', () => {
+  /** User A's manual quote with one package; returns ids and a payload builder for any user. */
+  async function aManualQuote(source = 'manual', guestName = `Kapoor ${Math.random().toString(36).slice(2, 8)}`) {
+    return asUser(db, userA, async (tx) => {
+      const tier = await tierId(tx, 'Premium');
+      const el = await newElement(tx, `T Arch ${Math.random()}`, 20000);
+      const pkg = await one<{ id: string }>(
+        tx,
+        `select public.save_package(null, $1, $2, null, null, null, null, true, $3::jsonb) as id`,
+        [`T Royal ${Math.random()}`, tier, JSON.stringify([{ element_id: el, default_qty: 1 }])],
+      );
+      const payload = await guestPayload(tx, { source, guestName, pkg: pkg.id, el, rate: 20000 });
+      const r = await one<{ r: { id: string } }>(tx, `select public.save_quote($1::jsonb) as r`, [JSON.stringify(payload)]);
+      return { id: r.r.id, pkg: pkg.id, el, guestName };
+    });
+  }
+  /** A save payload using the CALLER's own option lists. */
+  async function guestPayload(
+    tx: Transaction,
+    o: { source?: string; guestName: string; pkg: string; el: string; rate: number; quoteId?: string },
+  ) {
+    const opt = await one<{ fn: string; venue: string; sess: string }>(
+      tx,
+      `select (select id from public.function_options where name = 'Sangeet') fn,
+              (select id from public.venues where name = 'Ambria Exotica') venue,
+              (select id from public.sessions where name = 'Dinner') sess`,
+    );
+    return {
+      quote_id: o.quoteId ?? null,
+      guest: {
+        source: o.source ?? 'manual', source_ref: null, guest_name: o.guestName, guest_phone: '9876543210',
+        function_id: opt.fn, venue_id: opt.venue, sub_venue_id: null, event_date: '2027-02-01', session_id: opt.sess,
+      },
+      packages: [{ package_id: o.pkg, lines: [{ element_id: o.el, qty: 1, rate: o.rate, included: true }] }],
+      charges: [],
+    };
+  }
+
+  it('search shows only your own manual quotes unless "all staff" is on', async () => {
+    const q = await aManualQuote();
+    await aManualQuote('lms_lead', q.guestName); // LMS quotes are never shared
+    const search = (all: boolean) =>
+      asUser(db, userB, (tx) => tx.query<{ id: string; mine: boolean; owner_name: string }>(
+        `select * from public.team_manual_quotes($1, '', $2)`, [q.guestName, all]));
+    expect((await search(false)).rows).toEqual([]);
+    const all = (await search(true)).rows;
+    expect(all.map((r) => [r.id, r.mine, r.owner_name])).toEqual([[q.id, false, 'Uday Yadav']]);
+    const own = await asUser(db, userA, (tx) => tx.query<{ mine: boolean }>(`select * from public.team_manual_quotes($1, '', false)`, [q.guestName]));
+    expect(own.rows.map((r) => r.mine)).toEqual([true]);
+  });
+
+  it('opening a teammate’s quote maps options to your lists and is logged once', async () => {
+    const q = await aManualQuote();
+    const open = () => asUser(db, userB, (tx) => one<{ r: Record<string, unknown> }>(tx, `select public.team_quote($1) as r`, [q.id]).then((x) => x.r));
+    const r = await open();
+    await open();
+    const bFn = await asUser(db, userB, (tx) => one<{ id: string }>(tx, `select id from public.function_options where name = 'Sangeet'`));
+    expect(r).toMatchObject({ mine: false, owner_name: 'Uday Yadav', function_id: bFn.id, status: 'draft' });
+    expect((r.quote_items as unknown[]).length).toBe(1);
+
+    const logs = await asUser(db, userA, (tx) =>
+      tx.query<{ action: string; actor: string; name: string }>(
+        `select action, actor, new_data->>'actor_name' name from public.audit_log where row_id = $1 and action like '%_by_other'`, [q.id]));
+    expect(logs.rows).toEqual([{ action: 'viewed_by_other', actor: userB, name: 'David' }]);
+    // The audit trail belongs to the owner; the teammate can't read or change it.
+    const theirs = await asUser(db, userB, (tx) => tx.query(`select 1 from public.audit_log where row_id = $1`, [q.id]));
+    expect(theirs.rows).toEqual([]);
+    await expect(asUser(db, userB, (tx) => tx.query(`delete from public.audit_log where row_id = $1`, [q.id]))).rejects.toThrow();
+  });
+
+  it('a teammate can update the manual quote in place; owner stays, change is audited', async () => {
+    const q = await aManualQuote();
+    const saved = await asUser(db, userB, async (tx) => {
+      const p = await guestPayload(tx, { guestName: q.guestName, pkg: q.pkg, el: q.el, rate: 25000, quoteId: q.id });
+      return one<{ r: { id: string } }>(tx, `select public.save_quote($1::jsonb) as r`, [JSON.stringify(p)]).then((x) => x.r);
+    });
+    expect(saved.id).toBe(q.id);
+
+    const row = await one<{ owner_id: string; final_total: string; lines: number }>(
+      db,
+      `select owner_id, final_total, (select count(*)::int from public.quote_items i where i.quote_id = q.id and i.owner_id = q.owner_id) lines
+         from public.quotes q where id = $1`, [q.id]);
+    expect(row).toEqual({ owner_id: userA, final_total: '25000.00', lines: 1 });
+
+    const log = await one<{ actor: string; before: string; after: string; name: string }>(
+      db,
+      `select actor, old_data->>'final_total' before, new_data->>'final_total' after, new_data->>'actor_name' name
+         from public.audit_log where row_id = $1 and action = 'edited_by_other'`, [q.id]);
+    expect({ ...log, before: Number(log.before), after: Number(log.after) }).toEqual({ actor: userB, before: 20000, after: 25000, name: 'David' });
+  });
+
+  it('confirmed quotes stay locked, and LMS quotes stay private', async () => {
+    const q = await aManualQuote();
+    await asUser(db, userA, (tx) => tx.query(`update public.quotes set status = 'confirmed' where id = $1`, [q.id]));
+    await expect(
+      asUser(db, userB, async (tx) => {
+        const p = await guestPayload(tx, { guestName: q.guestName, pkg: q.pkg, el: q.el, rate: 1, quoteId: q.id });
+        await tx.query(`select public.save_quote($1::jsonb)`, [JSON.stringify(p)]);
+      }),
+    ).rejects.toThrow(/can no longer be edited/);
+
+    const lms = await aManualQuote('lms_contract');
+    await expect(asUser(db, userB, (tx) => tx.query(`select public.team_quote($1)`, [lms.id]))).rejects.toThrow(/not found/);
+  });
+});
+
 describe('re-running migrations with shared data (0030)', () => {
   it('still works when quotes and packages point at teammates’ rows', async () => {
     const cross = await one<{ n: number }>(

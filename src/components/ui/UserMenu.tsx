@@ -1,5 +1,5 @@
 /**
- * Signed-in user chip with a small dropdown: Settings, Change password, Sign out.
+ * Signed-in user chip with a small dropdown: Change password, Sign out.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -57,9 +57,6 @@ export function UserMenu({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
             <p className="truncate text-sm font-medium text-slate-900">{name}</p>
             {profile?.phone && <p className="text-xs text-slate-500">+91 {formatPhone(profile.phone)}</p>}
           </div>
-          <Link role="menuitem" to="/admin/settings" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-            <Icon name="settings" size={16} /> Settings
-          </Link>
           <Link role="menuitem" to="/change-password" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
             <Icon name="lock" size={16} /> Change password
           </Link>

@@ -70,7 +70,8 @@ export interface QuoteDraft {
   autoChargesOff?: boolean;
   /** Set after the first save; later saves update this draft quote in place. */
   /** snapshot = the saved payload (JSON, without the quote id) — used to tell if anything changed since. */
-  saved: { id: string; quoteNo: string; status?: 'draft'; snapshot?: string } | null;
+  /** ownerName = set when the quote belongs to a teammate (it stays theirs; the edit is logged). */
+  saved: { id: string; quoteNo: string; status?: 'draft' | 'sent'; snapshot?: string; ownerName?: string } | null;
 }
 
 export const EMPTY_DRAFT: QuoteDraft = { guest: null, packages: [], charges: [], saved: null };

@@ -175,8 +175,8 @@ describe('Quote detail', () => {
     vi.mocked(quoteLedgerApi.internal).mockResolvedValue({
       ...(await quoteLedgerApi.internal('q1')),
       history: [
-        { at: '2026-10-27T10:00:00Z', action: 'sent', from: 'sent', to: 'sent', sentCount: 2 },
-        { at: '2026-10-26T11:00:00Z', action: 'status_change', from: 'draft', to: 'sent', sentCount: null },
+        { at: '2026-10-27T10:00:00Z', action: 'sent', from: 'sent', to: 'sent', sentCount: 2, by: null },
+        { at: '2026-10-26T11:00:00Z', action: 'status_change', from: 'draft', to: 'sent', sentCount: null, by: null },
       ],
     });
     renderApp('/admin/quotes/q1');

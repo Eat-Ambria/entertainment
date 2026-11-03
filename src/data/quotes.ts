@@ -39,14 +39,6 @@ export interface GuestQuote {
   charges: { description: string; amount: number; sort_order: number }[];
 }
 
-// FK hints: quote_items links quotes and quote_packages, so PostgREST would otherwise see two
-// paths from quotes to quote_packages (direct, and many-to-many via quote_items).
-const COLUMNS = `id, quote_no, status, created_at, guest_name, guest_phone, function_name, venue_name, sub_venue_name,
-  event_date, session_name, package_name, package_tier, elements_subtotal, charges_total, final_total,
-  quote_packages!quote_packages_owner_id_quote_id_fkey(id, package_name, package_tier, subtotal, sort_order),
-  quote_items!quote_items_owner_id_quote_id_fkey(quote_package_id, element_name, unit, remarks, qty, rate, amount, is_included, sort_order),
-  quote_charges!quote_charges_owner_id_quote_id_fkey(description, amount, sort_order)`;
-
 async function save(payload: SaveQuotePayload): Promise<{ id: string; quote_no: string }> {
   const { data, error } = await requireSupabase().rpc('save_quote', { p_payload: payload });
   if (error) throw error;
@@ -54,7 +46,8 @@ async function save(payload: SaveQuotePayload): Promise<{ id: string; quote_no: 
 }
 
 async function getGuestQuote(id: string): Promise<GuestQuote> {
-  const { data, error } = await requireSupabase().from('quotes').select(COLUMNS).eq('id', id).single();
+  // Own quotes, or a teammate's manual quote (same guest-safe columns).
+  const { data, error } = await requireSupabase().rpc('team_quote', { p_id: id });
   if (error) throw error;
   const r = data as Record<string, unknown> & {
     quote_packages: GuestQuote['packages'] | null;

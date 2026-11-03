@@ -1,11 +1,12 @@
 /**
- * Guest Studio search: the signed-in user's own saved quotes for manually entered guests
- * (not from LMS), so a repeat guest can be found again from the Studio. Guest-safe columns
- * only — no amounts. Matches the guest name, phone or quote number; newest first.
+ * Guest Studio search: saved quotes for manually entered guests (not from LMS), so a repeat
+ * guest can be found again from the Studio. By default only the signed-in user's own; with
+ * `all`, every team member's too (e.g. when a colleague is on leave), each with who made it.
+ * Goes through the team_manual_quotes RPC; guest-safe columns only — no amounts.
+ * Matches the guest name, phone or quote number; newest first.
  */
 import { requireSupabase } from '@/lib/supabase';
 import { escapeLike } from '@/lib/dbErrors';
-import type { GuestForm } from '@/studio/guest/guestValidation';
 
 export interface SavedGuestQuote {
   id: string;
@@ -16,46 +17,31 @@ export interface SavedGuestQuote {
   functionName: string | null;
   venueName: string | null;
   eventDate: string | null;
-  /** The saved guest & event, ready for the form. */
-  form: GuestForm;
+  /** Who made the quote; `mine` = the signed-in user. */
+  ownerName: string;
+  mine: boolean;
 }
 
-export const SAVED_GUEST_LIMIT = 5;
-
-async function search(q: string): Promise<SavedGuestQuote[]> {
-  // Characters that would break the PostgREST or() filter are dropped; the rest is matched literally.
-  const term = escapeLike(q.trim().replace(/[,()*"]/g, ' ').trim());
+async function search(q: string, all = false): Promise<SavedGuestQuote[]> {
+  const term = escapeLike(q.trim());
   if (term.length < 3) return [];
-  const digits = q.replace(/\D/g, '');
-  const filters = [`guest_name.ilike.%${term}%`, `quote_no.ilike.%${term}%`];
-  if (digits.length >= 3) filters.push(`guest_phone.ilike.%${digits}%`);
-
-  const { data, error } = await requireSupabase()
-    .from('quotes')
-    .select('id, quote_no, status, guest_name, guest_phone, function_id, function_name, venue_id, venue_name, sub_venue_id, event_date, session_id')
-    .eq('source', 'manual')
-    .or(filters.join(','))
-    .order('created_at', { ascending: false })
-    .limit(SAVED_GUEST_LIMIT);
+  const { data, error } = await requireSupabase().rpc('team_manual_quotes', {
+    p_term: term,
+    p_digits: q.replace(/\D/g, ''),
+    p_all: all,
+  });
   if (error) throw error;
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    quoteNo: r.quote_no,
-    status: r.status,
-    guestName: r.guest_name,
-    phone: r.guest_phone,
-    functionName: r.function_name,
-    venueName: r.venue_name,
-    eventDate: r.event_date,
-    form: {
-      guestName: r.guest_name ?? '',
-      phone: r.guest_phone ?? '',
-      functionId: r.function_id ?? '',
-      venueId: r.venue_id ?? '',
-      subVenueId: r.sub_venue_id ?? '',
-      eventDate: r.event_date ?? '',
-      sessionId: r.session_id ?? '',
-    },
+  return ((data ?? []) as Record<string, string | boolean | null>[]).map((r) => ({
+    id: r.id as string,
+    quoteNo: r.quote_no as string,
+    status: r.status as SavedGuestQuote['status'],
+    guestName: r.guest_name as string,
+    phone: r.guest_phone as string | null,
+    functionName: r.function_name as string | null,
+    venueName: r.venue_name as string | null,
+    eventDate: r.event_date as string | null,
+    ownerName: r.owner_name as string,
+    mine: Boolean(r.mine),
   }));
 }
 

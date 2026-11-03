@@ -1,8 +1,10 @@
 /**
  * Guest Studio step 1 — Guest & Event.
  * One search box looks in LMS contracts and leads together; each result is tagged Contract
- * or Lead. The user's own saved quotes for manual guests are listed too ("Saved"): Use fills
- * the form for a new quote, Edit reopens a draft. Not found? Just fill the form — it's a manual (new) guest. The form is always
+ * or Lead. Saved quotes for manual guests are listed too ("Saved") — your own, or with
+ * "All staff entries" every team member's: Open loads that quote (guest, packages, elements)
+ * and saving updates it in place; a teammate's quote stays theirs and the change is logged.
+ * Confirmed / cancelled quotes are locked. Not found? Just fill the form — it's a manual (new) guest. The form is always
  * there to review/correct (function lives here — no separate function step). Saves to the draft.
  * Shown in front of the guest: other guests' phone numbers are masked in search results,
  * and at most 5 results are listed.
@@ -27,7 +29,6 @@ import { LiveEventCard } from './LiveEventCard';
 import { FIELD_MAP, getPath, venueText } from '../../../supabase/functions/_shared/lms';
 import { getGuestAdapter, lookupErrorMessage, searchAllGuests, type GuestLookupResult } from './guestSources';
 import { savedGuestsApi, type SavedGuestQuote } from '@/data/savedGuests';
-import { useEditQuote } from '../quote/useEditQuote';
 import { QuoteNotEditableError, quoteEditApi } from '@/data/quoteEdit';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import {
@@ -66,9 +67,10 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<GuestLookupResult[] | null>(null);
-  const [savedResults, setSavedResults] = useState<SavedGuestQuote[]>([]); // own quotes for manual guests
-  const edit = useEditQuote();
-  const [copiedFrom, setCopiedFrom] = useState<string | null>(null); // quote no. whose packages were loaded
+  const [savedResults, setSavedResults] = useState<SavedGuestQuote[]>([]); // saved quotes for manual guests
+  const [allStaff, setAllStaff] = useState(false); // also list teammates' manual quotes
+  // The saved quote opened from the search (saving updates it).
+  const [opened, setOpened] = useState<{ quoteNo: string; ownerName: string | null } | null>(null);
   const [partial, setPartial] = useState<string | null>(null); // e.g. leads couldn't be searched
   const [searchError, setSearchError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -116,7 +118,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
       setSearchError(null);
       setPartial(null);
       // Saved manual guests are looked up alongside LMS; either may fail without hiding the other.
-      const ownQuotes = savedGuestsApi.search(q).catch(() => [] as SavedGuestQuote[]);
+      const ownQuotes = savedGuestsApi.search(q, allStaff).catch(() => [] as SavedGuestQuote[]);
       try {
         const r = await searchAllGuests(adapter, q).catch(async (err: unknown) => {
           if ((await ownQuotes).length) return { results: [] as GuestLookupResult[], failed: ['contract', 'lead'] as LmsFailed };
@@ -137,7 +139,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
         if (run === lastRun.current) setSearching(false);
       }
     },
-    [adapter],
+    [adapter, allStaff],
   );
 
   // Suggestions while typing: searches 450 ms after the last key once there are 3+ characters.
@@ -191,17 +193,17 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     setErrors({});
   }
 
-  // A saved manual guest: copy that quote — guest, event, packages and elements — into a new
-  // quote (saving creates a new one). A past event date is left blank for the new event.
+  // A saved manual guest: open that quote — guest, event, packages and elements. Saving
+  // updates the same quote (no new entry).
   async function pickSaved(s: SavedGuestQuote) {
     setPicking(true);
     setPickError(null);
     try {
-      const { draft: copy, droppedLines } = await quoteEditApi.load(s.id, { asNew: true, today: todayIst() });
-      updateDraft(() => copy);
-      setForm(copy.guest ? formFromDraft(copy.guest) : s.form);
+      const { draft: loaded, droppedLines } = await quoteEditApi.load(s.id);
+      updateDraft(() => loaded);
+      if (loaded.guest) setForm(formFromDraft(loaded.guest));
       setPicked({ source: 'manual', ref: null, raw: null });
-      setCopiedFrom(s.quoteNo);
+      setOpened({ quoteNo: s.quoteNo, ownerName: s.mine ? null : s.ownerName });
       setResults(null);
       setSavedResults([]);
       setErrors({});
@@ -222,10 +224,10 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     setForm(EMPTY_GUEST_FORM);
     setErrors({});
     setPickError(null);
-    // Packages copied from a saved quote go too.
-    if (copiedFrom) {
+    // A quote opened from the search is closed too (start a new one).
+    if (opened) {
       updateDraft(() => EMPTY_DRAFT);
-      setCopiedFrom(null);
+      setOpened(null);
     }
   }
 
@@ -274,9 +276,15 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
               </Button>
             )}
           </form>
-          <p className="text-[11px] text-ivory/45">
-            Searches booked contracts, enquiry leads and your saved quotes together. Not found? Fill in the details below as a new guest.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-ivory/45">
+              Searches booked contracts, enquiry leads and saved quotes together. Not found? Fill in the details below as a new guest.
+            </p>
+            <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs text-ivory/70">
+              <input type="checkbox" checked={allStaff} onChange={() => setAllStaff((v) => !v)} className="h-3.5 w-3.5 accent-brand-300" />
+              All staff entries
+            </label>
+          </div>
           {searchError && <FormAlert>{searchError}</FormAlert>}
           {partial && <p className="text-xs text-amber-300">{partial}</p>}
           {results && results.length === 0 && savedResults.length === 0 && (
@@ -316,23 +324,23 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
                     <p className="flex items-center gap-2">
                       <span className="truncate font-medium text-ivory">{s.guestName}</span>
                       <span className="shrink-0 rounded-full bg-sky-400/10 px-2 py-0.5 text-xs font-semibold text-sky-300 ring-1 ring-sky-400/30">Saved</span>
+                      {s.status !== 'draft' && <span className="shrink-0 text-xs capitalize text-ivory/50">{s.status}</span>}
                     </p>
                     <p className="truncate text-sm text-ivory/55">
-                      {[s.quoteNo, s.phone && maskPhone(s.phone), s.functionName, s.eventDate && formatDate(s.eventDate), s.venueName]
+                      {[s.quoteNo, s.phone && maskPhone(s.phone), s.functionName, s.eventDate && formatDate(s.eventDate), s.venueName, !s.mine && `by ${s.ownerName}`]
                         .filter(Boolean)
                         .join(' · ')}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    {s.status === 'draft' && (
-                      <Button variant="outline-light" disabled={edit.busy} onClick={() => void edit.open(s.id)} aria-label={`Edit ${s.quoteNo}`}>
-                        Edit
-                      </Button>
-                    )}
-                    <Button variant="outline-light" disabled={picking} onClick={() => void pickSaved(s)} aria-label={`Use ${s.guestName} ${s.quoteNo}`}>
-                      Use
+                  {s.status === 'draft' || s.status === 'sent' ? (
+                    <Button variant="outline-light" disabled={picking} onClick={() => void pickSaved(s)} aria-label={`Open ${s.guestName} ${s.quoteNo}`}>
+                      Open
                     </Button>
-                  </div>
+                  ) : (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-ivory/45" title="Confirmed and cancelled quotes can't be changed">
+                      <Icon name="lock" size={14} /> Locked
+                    </span>
+                  )}
                 </m.li>
               ))}
             </m.ul>
@@ -341,16 +349,19 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
 
         {/* Form */}
         <form id={formId} onSubmit={onContinue} noValidate className="space-y-4">
-          {!picked.ref && !copiedFrom && (
+          {!picked.ref && !opened && (
             <p className="flex items-center gap-2 text-sm text-ivory/55">
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-ivory/75">Manual</span>
               New guest — enter the details yourself, or search above to fill them from LMS.
             </p>
           )}
-          {copiedFrom && (
+          {opened && (
             <p className="flex items-start gap-2 rounded-lg border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-sm text-sky-200">
               <Icon name="check" size={16} className="mt-0.5 shrink-0" />
-              Packages and elements from {copiedFrom} are loaded. Check the event details, then continue — this saves as a new quote.
+              <span>
+                {opened.quoteNo} {opened.ownerName && `(${opened.ownerName}’s quote) `}is open with its packages and elements. Saving
+                updates this quote — no new entry.{opened.ownerName && ' It stays theirs; your changes are recorded in its history.'}
+              </span>
             </p>
           )}
           {pickError && <p className="text-xs text-amber-300">{pickError}</p>}

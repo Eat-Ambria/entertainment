@@ -2,6 +2,7 @@
  * Guest Studio step 4 — Quotation: the live quotation and actions
  * (Save Quote and — once saved — Download PDF of the saved copy), in a side panel.
  * Sharing appears only once a delivery channel is configured, so there is no share button yet.
+ * Updating a quote that was already sent to the guest asks first.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/auth/AuthContext';
@@ -10,6 +11,7 @@ import { useSaveQuote } from '@/data/quotes';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { FormAlert } from '@/components/ui/FormAlert';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/toast';
 import { useQuoteDraft } from '../quoteDraft';
 import { buildSavePayload, summariseQuote } from './quoteTotals';
@@ -59,9 +61,16 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
   }, [draft]);
   const unchanged = Boolean(draft.saved?.snapshot) && current === draft.saved?.snapshot;
 
-  async function onSave(asNew = false) {
+  // A quote already sent to the guest is updated only after a confirm.
+  const [confirmSent, setConfirmSent] = useState(false);
+
+  async function onSave(asNew = false, sentOk = false) {
     if (save.isPending) return; // no double submits while a save is in flight
     if (unchanged && !asNew) return; // nothing to save
+    if (!asNew && !sentOk && draft.saved?.status === 'sent') {
+      setConfirmSent(true);
+      return;
+    }
     const built = buildSavePayload(draft);
     if (!built) {
       setShowErrors(true);
@@ -74,7 +83,11 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
       const r = await save.mutateAsync(payload);
       setCelebrate({ key: Date.now(), quoteNo: r.quote_no, created: firstSave });
       const snapshot = snapshotOf(built);
-      updateDraft((d) => ({ ...d, saved: { id: r.id, quoteNo: r.quote_no, status: 'draft', snapshot } }));
+      // Saving doesn't change the status; a teammate's quote stays theirs.
+      updateDraft((d) => ({
+        ...d,
+        saved: asNew || !d.saved ? { id: r.id, quoteNo: r.quote_no, status: 'draft', snapshot } : { ...d.saved, id: r.id, quoteNo: r.quote_no, snapshot },
+      }));
       toast.success(`Quote ${r.quote_no} saved.`);
     } catch (err) {
       const info = saveErrorInfo(err);
@@ -95,6 +108,19 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
   return (
     <div className="space-y-5">
       {fireworks}
+      {confirmSent && (
+        <ConfirmDialog
+          title="Update a sent quotation?"
+          body={`${draft.saved?.quoteNo} has already been sent to the guest. Saving replaces it with these changes.`}
+          confirmLabel="Update quotation"
+          tone="primary"
+          onConfirm={() => {
+            setConfirmSent(false);
+            void onSave(false, true);
+          }}
+          onClose={() => setConfirmSent(false)}
+        />
+      )}
       {lockedMessage && (
         <div ref={bannerRef} tabIndex={-1} role="alert" className="flex animate-rise flex-col gap-3 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 outline-none sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-start gap-2 text-sm text-amber-200">
@@ -135,6 +161,9 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
               {draft.saved ? <span className="num">{draft.saved.quoteNo}</span> : 'Not saved yet'}
             </p>
             <p className="mt-1 text-xs text-ivory/45">{draft.saved ? 'Saved — download the PDF or keep editing.' : 'Save it to get a quote number and the PDF.'}</p>
+            {draft.saved?.ownerName && (
+              <p className="mt-2 text-xs text-sky-200/80">{draft.saved.ownerName}’s quote — it stays theirs; your changes are recorded in its history.</p>
+            )}
             <div className="gold-hairline my-4" />
             <div className="space-y-2">
               <Button variant="gold" full onClick={() => void onSave()} loading={save.isPending} disabled={unchanged} title={unchanged ? 'No changes since the last save' : undefined}>

@@ -40,7 +40,8 @@ export interface QuoteInternal {
   source_ref: string | null;
   created_at: string;
   updated_at: string;
-  history: { at: string; action: string; from: string; to: string; sentCount: number | null }[];
+  /** by = the teammate who opened / edited someone else's quote (viewed_by_other / edited_by_other). */
+  history: { at: string; action: string; from: string; to: string; sentCount: number | null; by: string | null }[];
   overrides: { element_name: string; old_rate: number | null; new_rate: number; changed_at: string }[];
 }
 
@@ -127,6 +128,7 @@ export const quoteLedgerApi = {
         from: (a.old_data as { status?: string } | null)?.status ?? '',
         to: (a.new_data as { status?: string } | null)?.status ?? '',
         sentCount: (a.new_data as { sent_count?: number } | null)?.sent_count ?? null,
+        by: (a.new_data as { actor_name?: string } | null)?.actor_name ?? null,
       })),
       overrides: (overrides.data ?? []).map((o) => ({
         ...o,

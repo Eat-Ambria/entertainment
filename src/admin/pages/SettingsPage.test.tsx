@@ -34,9 +34,9 @@ describe('SettingsPage', () => {
     expect(auth.updateProfile).not.toHaveBeenCalled();
   });
 
-  it('shows the sign-in phone and a change-password link', async () => {
+  it('shows the sign-in phone (password is changed from the user menu)', async () => {
     renderApp('/admin/settings');
     expect(await screen.findByText('+91 98765 43210')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Change password' })).toHaveAttribute('href', '/change-password');
+    expect(screen.queryByRole('link', { name: 'Change password' })).not.toBeInTheDocument();
   });
 });
