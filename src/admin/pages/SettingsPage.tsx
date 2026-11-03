@@ -1,6 +1,7 @@
 /**
- * Settings: branding (performer photos, shown to guests), business profile (name, contact line, LMS user
- * id) and account (sign-in phone; password is changed from the user menu). One card per section.
+ * Settings: branding (performer photos, shown to guests) and business profile (name, contact line).
+ * One card per section. The LMS user id isn't shown here but is kept as saved (saving sends it back
+ * unchanged); the password is changed from the user menu.
  */
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
@@ -10,7 +11,6 @@ import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { FormAlert } from '@/components/ui/FormAlert';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { formatPhone } from '@/lib/phone';
 import { validateProfile, type ProfileForm } from './settingsValidation';
 import { PerformerPhotosUploader } from '../settings/PerformerPhotosUploader';
 
@@ -83,19 +83,6 @@ function ProfileFormSection({ profile, updateProfile }: Pick<AuthState, 'profile
         error={errors.contact_line}
         hint="Printed at the bottom of guest quotations."
       />
-      <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">LMS connection</p>
-        <div className="sm:max-w-xs">
-          <TextField
-            label="LMS user ID"
-            inputMode="numeric"
-            value={form.lms_logged_user_id}
-            onChange={set('lms_logged_user_id')}
-            error={errors.lms_logged_user_id}
-            hint="Used to fetch your leads and contracts."
-          />
-        </div>
-      </div>
       <div className="flex justify-end border-t border-slate-100 pt-4">
         <Button type="submit" loading={saving}>
           Save changes
@@ -109,21 +96,14 @@ export default function SettingsPage() {
   const { profile, updateProfile } = useAuth();
   return (
     <>
-      <PageHeader title="Settings" description="Your business details and account." />
-      <div className="max-w-4xl space-y-6">
+      <PageHeader title="Settings" description="Your business details." />
+      <div className="space-y-6">
         <Section icon="image" title="Branding" description="Performer photos shown to guests on the Guest Studio landing page.">
           <PerformerPhotosUploader />
         </Section>
 
-        <Section icon="user" title="Business profile" description="Your name, business details and LMS connection.">
+        <Section icon="user" title="Business profile" description="Your name and business details.">
           <ProfileFormSection key={profile?.id} profile={profile} updateProfile={updateProfile} />
-        </Section>
-
-        <Section icon="lock" title="Account" description="How you sign in.">
-          <dl>
-            <dt className="text-sm text-slate-500">Mobile number</dt>
-            <dd className="mt-0.5 font-medium text-slate-900">+91 {formatPhone(profile?.phone)}</dd>
-          </dl>
         </Section>
       </div>
     </>

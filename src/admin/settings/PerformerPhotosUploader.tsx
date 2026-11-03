@@ -76,7 +76,7 @@ export function PerformerPhotosUploader() {
         </Button>
       </div>
 
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {paths.map((path, i) => (
           <li key={path} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
             <ImageThumb bucket="brand" path={path} alt={`Performer photo ${i + 1}`} fill aspect="aspect-7/5" />
