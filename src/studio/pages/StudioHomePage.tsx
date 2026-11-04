@@ -22,7 +22,7 @@ const lineUp: Variants = { hidden: { y: '130%' }, show: { y: '0%', transition: {
 
 function Line({ className, children }: { className: string; children: React.ReactNode }) {
   return (
-    <span className={`block overflow-hidden pb-[0.22em] -mb-[0.14em] pr-[0.08em] ${className}`}>
+    <span className={`block overflow-hidden pt-[0.12em] -mt-[0.12em] pb-[0.22em] -mb-[0.14em] pr-[0.08em] ${className}`}>
       <m.span variants={lineUp} className="block">
         {children}
       </m.span>
@@ -39,7 +39,7 @@ export default function StudioHomePage() {
       variants={listStagger}
       initial="hidden"
       animate="show"
-      className="grid min-h-[calc(100svh-8.5rem)] grid-cols-[minmax(0,1fr)] items-center gap-12 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] xl:gap-12 lg:pl-10 xl:pl-20"
+      className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 pt-4 pb-8 sm:gap-12 sm:py-8 lg:min-h-[calc(100svh-8.5rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)] xl:gap-12 lg:pl-10 xl:pl-20"
     >
       <div className="max-w-3xl">
         <m.p
@@ -48,23 +48,23 @@ export default function StudioHomePage() {
         >
           {formatDate(new Date())} · {business}
         </m.p>
-        <m.h1 variants={lines} className="mt-7 font-display font-normal leading-[1.02] tracking-tight text-ivory">
-          <Line className="text-[clamp(2.3rem,11.5vw,3.75rem)] sm:text-7xl xl:text-8xl">Extraordinary</Line>
-          <Line className="pr-3 text-[clamp(2.3rem,11.5vw,3.75rem)] sm:text-7xl xl:text-8xl">
+        <m.h1 variants={lines} className="mt-5 font-display font-normal leading-[1.02] tracking-tight text-ivory sm:mt-7">
+          <Line className="text-[clamp(2rem,10.4vw,3.75rem)] sm:text-7xl xl:text-8xl">Extraordinary</Line>
+          <Line className="pr-3 text-[clamp(2rem,10.4vw,3.75rem)] sm:text-7xl xl:text-8xl">
             <em className="gold-shimmer">Entertainment.</em>
           </Line>
-          <Line className="mt-2 text-[clamp(1.55rem,7.4vw,2.25rem)] sm:text-5xl xl:text-6xl">Unforgettable Celebrations</Line>
+          <Line className="mt-1 text-[clamp(1.4rem,6.6vw,2.25rem)] sm:mt-2 sm:text-5xl xl:text-6xl">Unforgettable Celebrations</Line>
         </m.h1>
         <m.span
           variants={{ hidden: { scaleX: 0 }, show: { scaleX: 1, transition: { duration: 0.8, delay: 0.5, ease: EASE } } }}
-          className="mt-8 block h-0.5 w-20 origin-left bg-brand-400"
+          className="mt-6 block h-0.5 w-20 origin-left bg-brand-400 sm:mt-8"
           aria-hidden="true"
         />
-        <m.p variants={riseItem} className="mt-8 max-w-xl text-base leading-relaxed text-ivory/75 sm:text-lg">
+        <m.p variants={riseItem} className="mt-5 max-w-xl text-[15px] leading-relaxed text-ivory/75 sm:mt-8 sm:text-lg">
           From soulful live bands to electrifying DJs, celebrity performances to bespoke entertainment — craft a
           celebration that&rsquo;s uniquely yours.
         </m.p>
-        <m.div variants={riseItem} className="mt-10">
+        <m.div variants={riseItem} className="mt-7 sm:mt-10">
           <Link
             to={STUDIO_NEW_QUOTE}
             className="btn-shine cta-pulse group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-brand-400 px-9 py-4 text-sm font-semibold text-stage-950 shadow-lg shadow-black/40 transition duration-150 ease-premium hover:bg-brand-300 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-300"

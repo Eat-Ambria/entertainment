@@ -217,6 +217,14 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     }
   }
 
+  // Phones: when the keyboard opens, bring the search box up under the header so the results
+  // below it stay visible above the keyboard.
+  const searchRef = useRef<HTMLElement>(null);
+  function keepSearchInView() {
+    if (!window.matchMedia?.('(max-width: 639px)').matches) return;
+    window.setTimeout(() => searchRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 300);
+  }
+
   // Search box's Clear: empties the search, the results and the filled form.
   function clearAll() {
     onQueryChange('');
@@ -249,7 +257,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
       <section className="min-w-0 space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-4 sm:p-5 text-ivory shadow-2xl shadow-black/50">
         {/* Lookup */}
-        <section aria-label="Search" className="space-y-2.5 rounded-xl border border-white/10 bg-white/4 p-4">
+        <section ref={searchRef} aria-label="Search" className="scroll-mt-40 space-y-2.5 rounded-xl border border-white/10 bg-white/4 p-4">
           <div className="flex items-center gap-2">
             <Icon name="search" size={16} className="text-brand-300" />
             <h2 className="text-sm font-semibold text-ivory">Find the guest</h2>
@@ -263,8 +271,17 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
                 type="search"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
+                onFocus={keepSearchInView}
+                // A lookup box, not a contact form: no autofill / contact suggestions over the results.
+                name="guest-lookup"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                enterKeyHint="search"
                 placeholder="Guest name, phone or booking number"
-                className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-ivory outline-none transition-colors duration-150 scheme-dark placeholder:text-ivory/35 hover:bg-white/7 focus:border-brand-300 focus:ring-2 focus:ring-brand-300/25"
+                // 16px on phones so iOS doesn't zoom in on focus.
+                className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-10 pr-3 text-base text-ivory sm:text-sm outline-none transition-colors duration-150 scheme-dark placeholder:text-ivory/35 hover:bg-white/7 focus:border-brand-300 focus:ring-2 focus:ring-brand-300/25"
               />
             </label>
             <Button type="submit" variant="gold" loading={searching} className="flex-1 sm:flex-none">

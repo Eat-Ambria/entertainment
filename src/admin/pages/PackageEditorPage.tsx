@@ -396,7 +396,7 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Filter elements"
-                    className="w-48 rounded-full border border-slate-300 py-1.5 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    className="w-48 rounded-full border border-slate-300 bg-white py-1.5 text-slate-900 placeholder:text-slate-400 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                   />
                 </label>
               </div>

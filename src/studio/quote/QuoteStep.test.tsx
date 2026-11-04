@@ -272,11 +272,11 @@ describe('Quotation step', () => {
     expect(screen.queryByText(/Additional charges —|Optional — transport/)).not.toBeInTheDocument();
   });
 
-  it('has an obvious way back to Customize', async () => {
+  it('has an obvious way back to Customise', async () => {
     const { router } = renderApp('/studio/new?step=quote');
     await userEvent.click(
       await screen.findByRole('button', {
-        name: /Customize/,
+        name: 'Customise',
       }),
     );
     await waitFor(() => expect(router.state.location.search).toBe('?step=customise'));

@@ -108,9 +108,12 @@ export function ElementFormDialog({ element, onClose }: Props) {
       toast.success(element ? 'Element updated.' : 'Element added.');
       onClose();
     } catch (err) {
-      setFormError(
-        dbErrorMessage(err, { '23505': 'An active element with this name already exists.' }),
-      );
+      // Duplicate active name (any team member's): shown under the Name field.
+      if ((err as { code?: string } | null)?.code === '23505') {
+        setErrors({ name: `An active element named "${result.value.name}" already exists. Choose a different name.` });
+      } else {
+        setFormError(dbErrorMessage(err));
+      }
     } finally {
       setBusy(false);
     }

@@ -21,7 +21,9 @@ const TILT = { stiffness: 140, damping: 18 };
 const slide = {
   enter: (dir: number) => ({ clipPath: dir > 0 ? 'inset(0% 0% 0% 100%)' : 'inset(0% 100% 0% 0%)', scale: 1.18, zIndex: 1 }),
   show: { clipPath: 'inset(0% 0% 0% 0%)', scale: 1.04, zIndex: 1 },
-  exit: { scale: 1, opacity: 0.4, zIndex: 0 },
+  // The old photo stays fully visible underneath while the new one wipes over it (1 s), then
+  // goes quickly. Its own short timing, so old photos never pile up half-transparent.
+  exit: { opacity: 0, zIndex: 0, transition: { opacity: { duration: 0.25, delay: 1 } } },
 };
 
 function Slide({ path, index, dir }: { path: string; index: number; dir: number }) {

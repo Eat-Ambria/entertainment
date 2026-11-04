@@ -165,7 +165,7 @@ describe('ElementsPage', () => {
     await userEvent.type(within(dialog).getByLabelText('Name'), 'Entrance Arch');
     await userEvent.type(within(dialog).getByLabelText('Cost rate'), '1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add element' }));
-    expect(await within(dialog).findByText('An active element with this name already exists.')).toBeInTheDocument();
+    expect(await within(dialog).findByText('An active element named "Entrance Arch" already exists. Choose a different name.')).toBeInTheDocument();
   });
 
   it('archives only after confirmation', async () => {
@@ -208,7 +208,16 @@ describe('ElementsPage', () => {
     renderApp('/admin/elements?status=archived');
     await userEvent.click(await screen.findByRole('button', { name: 'Restore Entrance Arch' }));
     await waitFor(() => expect(api.setActive).toHaveBeenCalledWith('e1', true));
-    expect(screen.queryByRole('button', { name: 'Edit Entrance Arch' })).not.toBeInTheDocument();
+  });
+
+  it('lets an archived element be renamed when restoring clashes with an active namesake', async () => {
+    api.list.mockResolvedValue({ rows: [el({ is_active: false })], total: 1 });
+    api.setActive.mockRejectedValueOnce({ code: '23505' });
+    renderApp('/admin/elements?status=archived');
+    await userEvent.click(await screen.findByRole('button', { name: 'Restore Entrance Arch' }));
+    expect(await screen.findByText(/Rename this one \(Edit ✎\) and restore it again/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Entrance Arch' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('shows an error with retry when loading fails', async () => {

@@ -91,7 +91,9 @@ export default function ElementsPage() {
       setConfirming(null);
     } catch (err) {
       toast.error(
-        dbErrorMessage(err, { '23505': `An active element named "${el.name}" already exists. Rename one first.` }),
+        dbErrorMessage(err, {
+          '23505': `An active element named "${el.name}" already exists. Rename this one (Edit ✎) and restore it again.`,
+        }),
       );
     }
   }
@@ -127,7 +129,7 @@ export default function ElementsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search elements"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 text-slate-900 placeholder:text-slate-400 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </label>
             <label className="w-32 shrink-0 sm:w-auto">
@@ -227,16 +229,15 @@ export default function ElementsPage() {
                       <td className={`px-4 py-3 text-xs whitespace-nowrap text-slate-400${HIDE}`}>{formatDate(el.updated_at)}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-0.5 sm:gap-1">
-                          {el.is_active && (
-                            <button
-                              type="button"
-                              onClick={() => setEditing(el)}
-                              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 sm:p-2"
-                              aria-label={`Edit ${el.name}`}
-                            >
-                              <Icon name="edit" size={16} />
-                            </button>
-                          )}
+                          {/* Archived rows can be edited too — e.g. renamed so they can be restored next to an active namesake. */}
+                          <button
+                            type="button"
+                            onClick={() => setEditing(el)}
+                            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 sm:p-2"
+                            aria-label={`Edit ${el.name}`}
+                          >
+                            <Icon name="edit" size={16} />
+                          </button>
                           <button
                             type="button"
                             onClick={() => (el.is_active ? setConfirming(el) : void toggleActive(el))}

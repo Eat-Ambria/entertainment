@@ -189,7 +189,7 @@ export function QuoteStep({ onBack }: { onBack: () => void }) {
                 onClick={onBack}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-ivory/70 transition-colors duration-150 hover:bg-white/5 hover:text-ivory"
               >
-                <Icon name="edit" size={16} className="text-brand-300" /> Customize
+                <Icon name="edit" size={16} className="text-brand-300" /> Customise
               </button>
             </div>
           </div>

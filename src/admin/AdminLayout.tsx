@@ -5,9 +5,10 @@
  * light page title, and frosted cream cards (`.ws-theme` in index.css).
  */
 import { Suspense, useRef, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { ADMIN_ROOT, navItemFor } from './nav';
+import { navItemFor } from './nav';
+import { NotificationsMenu } from './notifications/NotificationsMenu';
 import { asset } from '@/lib/asset';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
@@ -51,14 +52,7 @@ export function AdminLayout() {
             {current?.label ?? ''}
           </p>
           <div className="flex-1" />
-          <Link
-            to={`${ADMIN_ROOT}/quotes?status=draft`}
-            aria-label="Drafts to follow up"
-            title="Drafts to follow up"
-            className="rounded-full p-2 text-ivory transition-colors duration-150 hover:bg-white/10"
-          >
-            <Icon name="bell" size={20} />
-          </Link>
+          <NotificationsMenu />
           <UserMenu tone="dark" />
         </header>
         <main className="flex-1 overflow-y-auto">

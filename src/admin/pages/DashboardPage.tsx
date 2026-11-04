@@ -220,7 +220,7 @@ export default function DashboardPage() {
           </svg>
           <div className="relative flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-b from-[#7a5a2c] to-[#4a3418] font-display text-lg text-[#f3d49a] ring-1 ring-[#d9ab5f]/70">₹</span>
-            <p className="text-sm text-ivory/90">Confirmed revenue</p>
+            <p className="text-sm text-ivory/90">Revenue</p>
           </div>
           <p className="num relative mt-3 truncate bg-linear-to-b from-[#f6dca2] to-[#d4a65a] bg-clip-text font-display text-3xl font-semibold text-transparent sm:text-[2.35rem]">{revenue.data ? compactINR(revenue.data.all_selling) : '—'}</p>
           <p className="relative mt-1.5 truncate text-xs text-ivory/75">From confirmed {monthName} events</p>

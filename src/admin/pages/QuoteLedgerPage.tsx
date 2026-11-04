@@ -94,7 +94,7 @@ export default function QuoteLedgerPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Quote no, guest or phone"
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 text-slate-900 placeholder:text-slate-400 pl-9 pr-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
               />
             </label>
             {/* Phones only: filters fold away so the list is visible straight away. */}
