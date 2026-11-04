@@ -77,10 +77,12 @@ html {
   background-color: var(--color-stage-950);
 }
 
-/* Nothing may stick out sideways: on phones that makes Safari zoom the whole page out. */
+/* Nothing may stick out sideways: on phones that makes Safari zoom the whole page out.
+   No rubber-band bounce past the top / bottom either (it showed an empty band above the page). */
 html,
 body {
   overflow-x: clip;
+  overscroll-behavior: none;
 }
 
 body {
