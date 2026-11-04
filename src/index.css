@@ -71,8 +71,14 @@ body,
   height: 100%;
 }
 
+/* Dark behind every page, so the phone's status-bar area and over-scroll show black, not white.
+   Each screen paints its own background on top (the Workspace its cream, the Studio its stage). */
+html {
+  background-color: var(--color-stage-950);
+}
+
 body {
-  @apply bg-slate-50 font-sans text-slate-900 antialiased;
+  @apply bg-stage-950 font-sans text-slate-900 antialiased;
   font-feature-settings: 'cv11', 'ss01';
 }
 

@@ -65,6 +65,9 @@ export interface LinesSummary {
   valid: boolean;
 }
 
+/** Largest amount the database stores for a line (numeric(14,2)). */
+const MAX_LINE_AMOUNT = 999_999_999_999.99;
+
 export function summariseLines(lines: readonly DraftLine[]): LinesSummary {
   const amounts = new Map<string, number | null>();
   const errors = new Map<string, LineErrors>();
@@ -78,6 +81,7 @@ export function summariseLines(lines: readonly DraftLine[]): LinesSummary {
     const e: LineErrors = {};
     if (qty === null) e.qty = 'Enter a quantity above 0';
     if (rate === null) e.rate = 'Enter a valid rate';
+    else if (qty !== null && lineAmount(qty, rate) > MAX_LINE_AMOUNT) e.qty = 'Amount is too large — lower the quantity or rate';
     if (e.qty || e.rate) errors.set(l.elementId, e);
     else priced.push({ qty: qty!, rate: rate! });
   }

@@ -54,6 +54,11 @@ const inputCls = (bad: boolean) =>
 const GRID = 'sm:grid-cols-[auto_minmax(11rem,1fr)_minmax(0,9rem)_5rem_6.5rem_7rem]';
 
 // Number boxes are right-aligned, so a click usually lands before the digits — put the caret at the end.
+// Qty / rate boxes take only what the database can store: digits (commas allowed), at most
+// `intDigits` before the point and 2 after — longer numbers are not typed in at all.
+const fits = (value: string, intDigits: number) =>
+  new RegExp(`^\\d{0,${intDigits}}(\\.\\d{0,2})?$`).test(value.replace(/,/g, '').trim());
+
 const caretToEnd = (e: React.FocusEvent<HTMLInputElement>) => {
   const el = e.currentTarget;
   requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length));
@@ -63,6 +68,9 @@ const LineRow = memo(function LineRow({ blockId, labelSuffix, line, amount, erro
   const off = !line.included;
   const name = `${line.name}${labelSuffix}`;
   const set = (patch: Partial<DraftLine>) => onChange(blockId, line.elementId, patch);
+  // Errors show after Continue, or straight away for a number that can't be used (e.g. too large).
+  const showQtyError = Boolean(errors?.qty) && (showErrors || line.qty.trim() !== '');
+  const showRateError = Boolean(errors?.rate) && (showErrors || line.rate.trim() !== '');
   return (
     <m.li
       initial={{ opacity: 0, y: -8 }}
@@ -102,11 +110,11 @@ const LineRow = memo(function LineRow({ blockId, labelSuffix, line, amount, erro
             inputMode="decimal"
             value={line.qty}
             disabled={off}
-            onChange={(e) => set({ qty: e.target.value })}
+            onChange={(e) => fits(e.target.value, 8) && set({ qty: e.target.value })}
             onFocus={caretToEnd}
             aria-label={`Quantity for ${name}`}
-            aria-invalid={showErrors && errors?.qty ? true : undefined}
-            className={inputCls(showErrors && Boolean(errors?.qty))}
+            aria-invalid={showQtyError ? true : undefined}
+            className={inputCls(showQtyError)}
           />
         </label>
         <label className="block">
@@ -117,11 +125,11 @@ const LineRow = memo(function LineRow({ blockId, labelSuffix, line, amount, erro
               inputMode="decimal"
               value={line.rate}
               disabled={off}
-              onChange={(e) => set({ rate: e.target.value })}
+              onChange={(e) => fits(e.target.value, 10) && set({ rate: e.target.value })}
               onFocus={caretToEnd}
               aria-label={`Rate for ${name}`}
-              aria-invalid={showErrors && errors?.rate ? true : undefined}
-              className={inputCls(showErrors && Boolean(errors?.rate))}
+              aria-invalid={showRateError ? true : undefined}
+              className={inputCls(showRateError)}
             />
           ) : (
             <p className={`num py-2 text-right text-sm text-ivory/75 ${off ? 'opacity-50' : ''}`} aria-label={`Rate for ${name}`}>
@@ -137,8 +145,10 @@ const LineRow = memo(function LineRow({ blockId, labelSuffix, line, amount, erro
           </p>
         </div>
       </div>
-      {showErrors && errors && !off && (
-        <p className="col-span-2 text-right text-xs text-rose-300 sm:col-span-6">{[errors.qty, errors.rate].filter(Boolean).join(' · ')}</p>
+      {(showQtyError || showRateError) && !off && (
+        <p className="col-span-2 text-right text-xs text-rose-300 sm:col-span-6">
+          {[showQtyError && errors?.qty, showRateError && errors?.rate].filter(Boolean).join(' · ')}
+        </p>
       )}
     </m.li>
   );

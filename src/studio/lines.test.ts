@@ -46,6 +46,16 @@ describe('summariseLines', () => {
     expect(summariseLines(lines).includedCount).toBe(2);
   });
 
+  it('handles large quantities, and flags an amount too large to store', () => {
+    const lines = ticked(PKG).slice(0, 1);
+    lines[0] = { ...lines[0]!, qty: '122323', rate: '3887' };
+    expect(summariseLines(lines).subtotal).toBe(475_469_501);
+    lines[0] = { ...lines[0]!, qty: '99999999', rate: '9999999999' };
+    const s = summariseLines(lines);
+    expect(s.valid).toBe(false);
+    expect(s.errors.get('e1')?.qty).toMatch(/too large/);
+  });
+
   it('recalculates when quantity or rate changes', () => {
     const lines = ticked(PKG);
     lines[0]!.qty = '2';
