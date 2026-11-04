@@ -77,6 +77,12 @@ html {
   background-color: var(--color-stage-950);
 }
 
+/* Nothing may stick out sideways: on phones that makes Safari zoom the whole page out. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   @apply bg-stage-950 font-sans text-slate-900 antialiased;
   font-feature-settings: 'cv11', 'ss01';

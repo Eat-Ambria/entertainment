@@ -48,7 +48,7 @@ const OPEN_DELAY_MS = 320;
 
 export default function WorkspaceChooserPage() {
   return (
-    <div className="relative isolate flex min-h-dvh flex-col bg-stage-950 px-4 py-6 text-ivory sm:px-8">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip bg-stage-950 px-4 py-6 text-ivory sm:px-8">
       <span className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[30rem] w-[50rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(226_183_102/0.12),transparent)]" />
       {/* Phones: the smaller mark so the name and the user chip fit on one line. */}
       <header className="flex items-center justify-between gap-3">
