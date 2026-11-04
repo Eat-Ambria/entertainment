@@ -480,3 +480,13 @@ html.no-scrollbar::-webkit-scrollbar {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Phones: iOS zooms into any field whose text is under 16px when it's tapped. Every input,
+   select and textarea uses 16px on small screens (desktop keeps each field's own size). */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
