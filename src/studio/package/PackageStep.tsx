@@ -6,7 +6,8 @@
  * Layout matches the Guest step: cards on a dark panel on the left, "Your selection" (chosen
  * packages + Back / Continue) on the right at the same height.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchPackageLines, useActivePackages, type StudioPackage, type StudioPackageLine } from '@/data/studioCatalog';
@@ -30,7 +31,7 @@ interface Props {
   onDone: () => void;
 }
 
-const GRID = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
+const GRID = 'grid gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
 
 export function PackageStep({ onBack, onDone }: Props) {
   const { session } = useAuth();
@@ -69,6 +70,18 @@ export function PackageStep({ onBack, onDone }: Props) {
     );
   }
 
+  const wide = useWide();
+  const actions = (
+    <>
+      <Button variant="outline-light" onClick={onBack}>
+        <Icon name="arrowLeft" size={18} /> Back
+      </Button>
+      <Button variant="gold" full onClick={goNext} disabled={selected.size === 0}>
+        Continue <Icon name="arrowRight" size={18} />
+      </Button>
+    </>
+  );
+
   const rows = packages.data?.pages.flatMap((pg) => pg.rows) ?? [];
   // The guest's function first; everything else below (nothing is hidden).
   const forFunction = rows.filter((r) => r.for_function);
@@ -82,7 +95,7 @@ export function PackageStep({ onBack, onDone }: Props) {
         variants={riseItem}
         whileHover={{ y: -3, transition: spring }}
         whileTap={{ scale: 0.985, transition: spring }}
-        className={`group relative flex flex-col overflow-hidden rounded-xl border text-left transition-[background-color,border-color,box-shadow] duration-300 ease-premium ${
+        className={`group relative flex flex-row items-stretch overflow-hidden rounded-xl border text-left sm:flex-col transition-[background-color,border-color,box-shadow] duration-300 ease-premium ${
           isSelected
             ? 'border-brand-400/70 bg-brand-500/12 ring-2 ring-brand-400 shadow-lg shadow-brand-500/20'
             : `${p.for_function ? 'border-brand-300/35' : 'border-white/10'} bg-stage-950/50 hover:border-brand-300/50 hover:bg-white/5 hover:shadow-lg hover:shadow-brand-500/10`
@@ -94,24 +107,25 @@ export function PackageStep({ onBack, onDone }: Props) {
           aria-checked={isSelected}
           aria-label={`${p.name}, ${p.tier_name}`}
           onClick={() => toggle(p)}
-          className="flex flex-1 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
+          className="flex min-w-0 flex-1 flex-row items-center gap-3 p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300 sm:flex-col sm:items-stretch sm:gap-0 sm:p-0"
         >
-          <div className="relative overflow-hidden">
+          {/* Phones: a small round photo with the name beside it. Larger screens: the full card. */}
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full ring-1 ring-brand-300/40 sm:h-auto sm:w-auto sm:rounded-none sm:ring-0">
             <ImageThumb
               bucket="package-images"
               path={p.image_path}
               alt=""
               fill
               dark
-              aspect="aspect-16/10"
+              aspect="aspect-square sm:aspect-16/10"
               className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]"
             />
-            <span className="pointer-events-none absolute inset-0 bg-linear-to-t from-stage-950/95 via-stage-950/20 to-transparent" />
-            <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-ivory ring-1 ring-white/20">
+            <span className="pointer-events-none absolute inset-0 hidden bg-linear-to-t from-stage-950/95 via-stage-950/20 to-transparent sm:block" />
+            <span className="absolute left-3 top-3 hidden items-center sm:flex gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-ivory ring-1 ring-white/20">
               {p.tier_name}
             </span>
             {p.for_function && (
-              <span className="absolute bottom-11 left-3 rounded-full bg-brand-400 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-stage-950 shadow-md shadow-black/30">
+              <span className="absolute bottom-11 left-3 hidden rounded-full bg-brand-400 sm:inline px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-stage-950 shadow-md shadow-black/30">
                 Recommended
               </span>
             )}
@@ -122,15 +136,32 @@ export function PackageStep({ onBack, onDone }: Props) {
                   initial={{ scale: 0.4, opacity: 0, rotate: -20 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0, transition: spring }}
                   exit={{ scale: 0.4, opacity: 0, transition: { duration: 0.15 } }}
-                  className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-brand-400 text-stage-950 shadow-lg shadow-black/40"
+                  className="absolute right-3 top-3 hidden h-7 w-7 items-center justify-center rounded-full bg-brand-400 text-stage-950 shadow-lg shadow-black/40 sm:flex"
                 >
                   <Icon name="check" size={16} />
                 </m.span>
               )}
             </AnimatePresence>
-            <h3 className="absolute inset-x-4 bottom-3 truncate font-display text-lg font-semibold leading-snug text-ivory drop-shadow">{p.name}</h3>
+            <h3 className="absolute inset-x-4 bottom-3 hidden truncate font-display text-lg font-semibold leading-snug text-ivory drop-shadow sm:block">{p.name}</h3>
           </div>
-          <div className="flex flex-1 flex-col gap-2 px-4 py-3">
+          {/* Phone row: name, tier (+ Recommended), and a round tick on the right. */}
+          <div className="min-w-0 flex-1 sm:hidden">
+            <p className="truncate font-display text-base font-semibold text-ivory">{p.name}</p>
+            <p className="mt-0.5 flex items-center gap-2 text-xs text-ivory/55">
+              {p.tier_name}
+              {p.for_function && <span className="rounded-full bg-brand-400 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wider text-stage-950">Recommended</span>}
+            </p>
+          </div>
+          {/* Right column: the tick on top, room for the video icon (laid over it) below. */}
+          <span aria-hidden="true" className={`flex shrink-0 flex-col items-center gap-2 self-stretch sm:hidden ${p.video_url ? 'justify-between' : 'justify-center'}`}>
+            <span
+              className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-200 ${isSelected ? 'bg-brand-400 text-stage-950' : 'ring-1 ring-white/25'}`}
+            >
+              {isSelected && <Icon name="check" size={16} />}
+            </span>
+            {p.video_url && <span className="h-7 w-7" />}
+          </span>
+          <div className="hidden flex-1 flex-col gap-2 px-4 py-3 sm:flex">
             {p.description && <p className="line-clamp-2 text-sm text-ivory/65">{p.description}</p>}
             <span className={`mt-auto text-xs font-semibold uppercase tracking-wider ${isSelected ? 'text-brand-300' : 'text-ivory/40'}`}>
               {isSelected ? 'Selected — tap to remove' : 'Tap to select'}
@@ -142,9 +173,10 @@ export function PackageStep({ onBack, onDone }: Props) {
             href={p.video_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 border-t border-white/10 px-4 py-2.5 text-sm font-medium text-brand-300 transition-colors duration-200 hover:bg-white/5 hover:text-brand-200"
+            aria-label={`Watch video of ${p.name}`}
+            className="absolute right-3 bottom-3 z-10 flex h-7 w-7 items-center justify-center gap-1.5 rounded-full text-sm font-medium text-brand-300 ring-1 ring-brand-300/40 transition-colors duration-200 hover:bg-white/5 hover:text-brand-200 sm:static sm:h-auto sm:w-auto sm:justify-start sm:rounded-none sm:border-t sm:border-white/10 sm:px-4 sm:py-2.5 sm:ring-0"
           >
-            <Icon name="present" size={16} /> Watch video
+            <Icon name="present" size={15} /> <span className="hidden sm:inline">Watch video</span>
           </a>
         )}
       </m.div>
@@ -152,10 +184,11 @@ export function PackageStep({ onBack, onDone }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+    // pb: room for the pinned Back / Continue bar on phones and tablets.
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:pb-0 xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="min-w-0 space-y-4">
       <StepHeading step="package" />
-      <section aria-label="Packages" className="space-y-6 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-5 text-ivory shadow-2xl shadow-black/50">
+      <section aria-label="Packages" className="space-y-5 rounded-2xl border border-brand-300/25 bg-stage-900/80 p-3 text-ivory sm:space-y-6 sm:p-5 shadow-2xl shadow-black/50">
       {packages.isLoading ? (
         <Spinner label="Loading packages…" />
       ) : packages.isError ? (
@@ -250,18 +283,36 @@ export function PackageStep({ onBack, onDone }: Props) {
           )}
         </div>
         <p className="mt-4 text-xs text-ivory/45">You can add or remove elements in the next step.</p>
-        <div className="mt-3 flex gap-2">
-          <Button variant="outline-light" onClick={onBack}>
-            <Icon name="arrowLeft" size={18} /> Back
-          </Button>
-          <Button variant="gold" full onClick={goNext} disabled={selected.size === 0}>
-            Continue <Icon name="arrowRight" size={18} />
-          </Button>
-        </div>
+        {wide ? (
+          <div className="mt-3 flex gap-2">{actions}</div>
+        ) : (
+          // Phones / tablets: Back + Continue stay pinned to the bottom of the screen while scrolling
+          // (rendered into <body>, so the step's slide-in can't move it).
+          createPortal(
+            <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-brand-300/20 bg-stage-950/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_30px_rgb(0_0_0/0.5)] backdrop-blur-md">
+              {actions}
+            </div>,
+            document.body,
+          )
+        )}
       </aside>
       </div>
     </div>
   );
+}
+
+/** Large screens (lg+) show the actions in the side panel; smaller ones pin them to the bottom. */
+function useWide() {
+  const query = '(min-width: 1024px)';
+  const [wide, setWide] = useState(() => window.matchMedia?.(query).matches ?? true);
+  useEffect(() => {
+    const mq = window.matchMedia?.(query);
+    if (!mq) return;
+    const onChange = () => setWide(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return wide;
 }
 
 function SectionTitle({ label, count, gold = false }: { label: string; count: number; gold?: boolean }) {
