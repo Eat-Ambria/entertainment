@@ -48,7 +48,8 @@ export function AdminLayout() {
             <Icon name="menu" />
           </button>
           <p className="flex min-w-0 items-center gap-2.5 truncate text-base font-medium text-slate-800">
-            {current && <Icon name={current.icon} size={20} className="shrink-0 text-slate-600" />}
+            {/* Phones: just the page name (no icon). */}
+            {current && <Icon name={current.icon} size={20} className="hidden shrink-0 text-slate-600 sm:block" />}
             {current?.label ?? ''}
           </p>
           <div className="flex-1" />
