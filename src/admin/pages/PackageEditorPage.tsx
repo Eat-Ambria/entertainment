@@ -538,16 +538,25 @@ function PackageEditor({ pkg, tiers, elements }: EditorProps) {
 
       {/* Sticky summary */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgb(15_23_42/0.06)] backdrop-blur lg:left-72">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="text-sm text-slate-600" aria-live="polite">
-            <span className="font-semibold text-slate-900">{selected.size}</span> {selected.size === 1 ? 'element' : 'elements'} ·
-            Elements total <span className="num font-semibold text-brand-700">{formatINR(total)}</span>
+        {/* Phones: the summary on one line (count left, total right), then Cancel + a full-width save. */}
+        <div className="mx-auto flex max-w-7xl flex-col gap-2.5 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:pb-3 lg:px-8">
+          <p className="flex items-baseline justify-between gap-3 text-sm text-slate-600 sm:block" aria-live="polite">
+            <span>
+              <span className="font-semibold text-slate-900">{selected.size}</span> {selected.size === 1 ? 'element' : 'elements'}
+              <span className="hidden sm:inline"> · </span>
+            </span>
+            <span>
+              Elements total <span className="num font-semibold text-brand-700">{formatINR(total)}</span>
+            </span>
           </p>
           <div className="flex gap-2">
-            <Link to="/admin/packages" className="inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+            <Link
+              to="/admin/packages"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:border-0 sm:bg-transparent sm:text-slate-600 sm:hover:bg-slate-100"
+            >
               Cancel
             </Link>
-            <Button type="submit" loading={busy}>
+            <Button type="submit" loading={busy} className="flex-1 sm:flex-none">
               {pkg ? 'Save package' : 'Create package'}
             </Button>
           </div>
