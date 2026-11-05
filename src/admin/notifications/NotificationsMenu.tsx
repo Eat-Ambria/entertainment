@@ -97,10 +97,11 @@ export function NotificationsMenu() {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] origin-top-right animate-pop overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-lg"
+          // Phones: full width under the header (anchored to the bell it would run off the left edge).
+          className="fixed inset-x-3 top-[4.25rem] z-50 origin-top animate-pop overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-lg sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-[22rem] sm:origin-top-right"
         >
           <p className="border-b border-slate-100 px-4 py-3 text-sm font-semibold">Notifications</p>
-          <div className="max-h-[70vh] overflow-y-auto">
+          <div className="max-h-[min(70vh,32rem)] overflow-y-auto overscroll-contain">
             {n.isLoading ? (
               <p className="px-4 py-6 text-center text-sm text-slate-500">Loading…</p>
             ) : n.isError ? (
