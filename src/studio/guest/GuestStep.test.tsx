@@ -133,11 +133,13 @@ describe('Guest & Event step', () => {
     await userEvent.click(screen.getByRole('button', { name: /Continue to packages/ }));
     expect(screen.getByText('Enter the guest name.')).toBeInTheDocument();
     expect(screen.getByText('Choose the function.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Guest name')).toHaveFocus()); // first missing field
 
     await userEvent.type(screen.getByLabelText('Guest name'), 'Verma Family');
     await userEvent.type(screen.getByLabelText('Mobile number'), '12345');
     await userEvent.click(screen.getByRole('button', { name: /Continue to packages/ }));
     expect(screen.getByText('Enter a 10-digit mobile number.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Mobile number')).toHaveFocus());
 
     // letters and symbols are dropped, and it stops at 10 digits
     const phone = screen.getByLabelText('Mobile number');

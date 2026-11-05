@@ -239,11 +239,24 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
     }
   }
 
+  // Continue with something missing: bring the first highlighted field into view and focus it
+  // (on phones the Continue bar is far below the form).
+  const formRef = useRef<HTMLFormElement>(null);
+  const [errorJump, setErrorJump] = useState(0);
+  useEffect(() => {
+    if (!errorJump) return;
+    const field = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (!field) return;
+    field.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    field.focus({ preventScroll: true });
+  }, [errorJump]);
+
   function onContinue(e: FormEvent) {
     e.preventDefault();
     const result = validateGuest(form, { source: picked.source, sourceRef: picked.ref, sourceRaw: picked.raw });
     if (!result.ok) {
       setErrors(result.errors);
+      setErrorJump((n) => n + 1);
       return;
     }
     updateDraft((d) => ({ ...d, guest: result.value }));
@@ -365,7 +378,7 @@ export function GuestStep({ onDone }: { onDone: () => void }) {
         </section>
 
         {/* Form */}
-        <form id={formId} onSubmit={onContinue} noValidate className="space-y-4">
+        <form ref={formRef} id={formId} onSubmit={onContinue} noValidate className="space-y-4">
           {!picked.ref && !opened && (
             <p className="flex items-center gap-2 text-sm text-ivory/55">
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-ivory/75">Manual</span>
