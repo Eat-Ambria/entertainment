@@ -14,7 +14,7 @@
     "coverage": "vitest run --coverage",
     "db:bundle": "node scripts/bundle-migrations.mjs",
     "lms:bundle": "node scripts/bundle-lms-proxy.mjs",
-    "pwa:icons": "pwa-assets-generator"
+    "pwa:icons": "pwa-assets-generator && node scripts/maskable-icon.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
